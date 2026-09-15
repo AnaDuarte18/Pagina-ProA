@@ -18,32 +18,32 @@ CREATE TABLE Rol (
 -- 2. CUENTA
 -- =========================================================
 
-CREATE TABLE EstadoCuenta (
-    ID INT AUTO_INCREMENT PRIMARY KEY,
-    estado VARCHAR(50) NOT NULL UNIQUE
-);
-
 CREATE TABLE Cuenta (
     ID INT AUTO_INCREMENT PRIMARY KEY,
+
     NombreApellido VARCHAR(150) NOT NULL,
+
+    correo VARCHAR(255) NOT NULL UNIQUE,
+
+    proveedorOAuth VARCHAR(50) NOT NULL,
+
+    oauthID VARCHAR(255) NOT NULL,
+
     rolID INT NOT NULL,
+
     estadoCuentaID INT NOT NULL,
-    correo VARCHAR(150) NOT NULL UNIQUE,
-    contrasena VARCHAR(255) NOT NULL,
 
     CONSTRAINT FK_Cuenta_Rol
         FOREIGN KEY (rolID)
-        REFERENCES Rol(ID)
-        ON UPDATE CASCADE
-        ON DELETE RESTRICT,
+        REFERENCES Rol(ID),
 
     CONSTRAINT FK_Cuenta_EstadoCuenta
         FOREIGN KEY (estadoCuentaID)
-        REFERENCES EstadoCuenta(ID)
-        ON UPDATE CASCADE
-        ON DELETE RESTRICT
-);
+        REFERENCES estadoCuenta(ID),
 
+    CONSTRAINT UQ_Cuenta_OAuth
+        UNIQUE (proveedorOAuth, oauthID)
+);
 
 -- =========================================================
 -- 3. ALUMNO
@@ -137,19 +137,19 @@ CREATE TABLE Clasificacion (
 
 CREATE TABLE Novedad (
     ID INT AUTO_INCREMENT PRIMARY KEY,
-    Titulo VARCHAR(200) NOT NULL,
-    Cuerpo TEXT NOT NULL,
-    Imagen VARCHAR(500) NULL,
+    titulo VARCHAR(200) NOT NULL,
+    cuerpo TEXT NOT NULL,
+    imagen VARCHAR(500) NULL,
     cuentaID INT NOT NULL,
     fecha_publicacion DATETIME NULL,
     asignaturaID INT NOT NULL,
     estadoID INT NOT NULL,
-    ComentarioAdmin TEXT NULL,
+    comentarioAdmin TEXT NULL,
     fechaDeCreacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT FK_Novedad_Cuenta
         FOREIGN KEY (cuentaID)
-        REFERENCES Cuenta(ID)
+        REFERENCES cuenta(ID)
         ON UPDATE CASCADE
         ON DELETE RESTRICT,
 
@@ -197,19 +197,19 @@ CREATE TABLE NovedadesCursos (
 
 CREATE TABLE Evento (
     ID INT AUTO_INCREMENT PRIMARY KEY,
-    Titulo VARCHAR(200) NOT NULL,
-    Cuerpo TEXT NOT NULL,
+    titulo VARCHAR(200) NOT NULL,
+    cuerpo TEXT NOT NULL,
     cuentaID INT NOT NULL,
     fecha_publicacion DATETIME NULL,
     acceso VARCHAR(50) NULL,
     asignaturaID INT NOT NULL,
     estadoID INT NOT NULL,
-    ComentarioAdmin TEXT NULL,
+    comentarioAdmin TEXT NULL,
     fechaDeCreacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT FK_Evento_Cuenta
         FOREIGN KEY (cuentaID)
-        REFERENCES Cuenta(ID)
+        REFERENCES cuenta(ID)
         ON UPDATE CASCADE
         ON DELETE RESTRICT,
 
