@@ -21,7 +21,7 @@ export default function App() {
       {/* Barra de navegación */}
       <Navbar activeNav={activeNav} onNavigate={handleNavigate} />
 
-      {/* Aviso de preinscripción — solo en Inicio */}
+      {/* AVISO*/}
       {activeNav === "Inicio" && (
         <div className="bg-[#6096BA] text-white">
           <div className="max-w-7xl mx-auto px-6 py-3 flex items-center gap-4 text-sm">
