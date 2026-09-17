@@ -44,6 +44,7 @@ export interface User {
   role: string;
   picture?: string | null;
   estadoCuentaId?: number;
+  solicitudDocente?: boolean;
 }
 
 export interface AuthContextType {
@@ -57,3 +58,77 @@ export interface AuthContextType {
   closeLoginModal: () => void;
 }
 
+export interface NotificacionItem {
+  ID: number;
+  Titulo: string;
+  mensaje: string;
+  fechaLeida: string | null;
+  tipoID: number;
+  tipoNombre?: string;
+}
+
+export interface CuentaItem {
+  ID: number;
+  NombreApellido: string;
+  correo: string;
+  rolID: number;
+  rolNombre: string;
+  estadoCuentaID: number;
+  estadoCuenta: string;
+  solicitudDocente: boolean | number;
+}
+
+export interface CursoItem {
+  ID: number;
+  anio: string;
+  division: string;
+}
+
+export interface NovedadBackendItem {
+  ID: number;
+  titulo: string;
+  cuerpo: string;
+  imagen?: string | null;
+  cuentaID: number;
+  autorNombre?: string;
+  fecha_publicacion?: string | null;
+  asignaturaID?: number | null;
+  asignaturaNombre?: string | null;
+  estadoID: number;
+  estadoNombre?: string;
+  comentarioAdmin?: string | null;
+  fechaDeCreacion: string;
+}
+
+export interface EventoBackendItem {
+  ID: number;
+  titulo: string;
+  cuerpo: string;
+  cuentaID: number;
+  autorNombre?: string;
+  fecha_publicacion?: string | null;
+  asignaturaID?: number | null;
+  asignaturaNombre?: string | null;
+  estadoID: number;
+  estadoNombre?: string;
+  comentarioAdmin?: string | null;
+  fechaDeCreacion: string;
+  cursoIDs?: string | number[];
+}
+
+export interface MaterialBackendItem {
+  ID: number;
+  Titulo: string;
+  descripcion?: string | null;
+  archivo: string;
+  cuentaID: number;
+  autorNombre?: string;
+  fecha_publicacion?: string | null;
+  clasificacionID: number;
+  clasificacionNombre?: string;
+  estadoID: number;
+  estadoNombre?: string;
+  fechaDeCreacion: string;
+  cursoIDs?: string | number[];
+  asignaturaIDs?: string | number[];
+}
