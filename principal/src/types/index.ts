@@ -35,3 +35,25 @@ export interface MaterialItem {
   paginas: number;
   archivo: string;
 }
+
+export interface User {
+  id: number | string;
+  name: string;
+  email: string;
+  roleId: number;
+  role: string;
+  picture?: string | null;
+  estadoCuentaId?: number;
+}
+
+export interface AuthContextType {
+  user: User | null;
+  token: string | null;
+  loading: boolean;
+  login: (user: User, token: string) => void;
+  logout: () => void;
+  isLoginModalOpen: boolean;
+  openLoginModal: () => void;
+  closeLoginModal: () => void;
+}
+

@@ -7,6 +7,8 @@ import Calendario from "@/components/Calendario";
 import Materias from "@/components/Materias";
 import Material from "@/components/Material";
 import Footer from "@/components/Footer";
+import LoginModal from "@/components/LoginModal";
+import { AuthProvider } from "@/context/AuthContext";
 
 export default function App() {
   const [activeNav, setActiveNav] = useState("Inicio");
@@ -17,9 +19,13 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-full bg-[#E7ECEF] text-[#0d1b2a]">
-      {/* Barra de navegación */}
-      <Navbar activeNav={activeNav} onNavigate={handleNavigate} />
+    <AuthProvider>
+      <div className="min-h-full bg-[#E7ECEF] text-[#0d1b2a]">
+        {/* Modal de inicio de sesión con Google */}
+        <LoginModal />
+
+        {/* Barra de navegación */}
+        <Navbar activeNav={activeNav} onNavigate={handleNavigate} />
 
       {/* AVISO*/}
       {activeNav === "Inicio" && (
@@ -81,6 +87,7 @@ export default function App() {
           <Footer onNavigate={handleNavigate} />
         </>
       )}
-    </div>
+      </div>
+    </AuthProvider>
   );
 }
