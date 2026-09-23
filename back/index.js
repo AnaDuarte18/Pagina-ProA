@@ -1879,6 +1879,111 @@ app.patch('/notificaciones/:id/leida', requireAuth, async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────
+// EMPRESAS
+// GET /empresas → público, devuelve solo las activas.
+// GET /admin/empresas → solo Admin, devuelve todas las empresas con todos sus datos.
+// PATCH /empresas/:id/estado → solo Admin, cambia el estado de una empresa.
+// ─────────────────────────────────────────────────────────────
+
+// Estados de empresa (estadoEmpresa table): Activa(1), Inactiva(2), Dada de baja(3)
+const ESTADOS_EMPRESA = {
+  ACTIVA: 1,
+  INACTIVA: 2,
+  DADA_DE_BAJA: 3,
+};
+
+/**
+ * GET /empresas
+ * Público (sin login). Devuelve solo las empresas con estado Activa.
+ */
+app.get('/empresas', async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT e.ID, e.Nombre, e.Descripcion, e.imagen,
+              e.estadoEmpresaID, ee.estado AS estadoNombre
+       FROM Empresas e
+       LEFT JOIN estadoEmpresa ee ON e.estadoEmpresaID = ee.ID
+       WHERE e.estadoEmpresaID = ?
+       ORDER BY e.Nombre ASC`,
+      [ESTADOS_EMPRESA.ACTIVA]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('[Empresas] GET /empresas:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /admin/empresas
+ * Solo Admin. Devuelve todas las empresas con todos sus datos (cualquier estado).
+ */
+app.get('/admin/empresas', requireAuth, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT e.ID, e.Nombre, e.Descripcion, e.imagen,
+              e.estadoEmpresaID, ee.estado AS estadoNombre
+       FROM Empresas e
+       LEFT JOIN estadoEmpresa ee ON e.estadoEmpresaID = ee.ID
+       ORDER BY e.Nombre ASC`
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('[Empresas] GET /admin/empresas:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * PATCH /empresas/:id/estado
+ * Solo Admin. Cambia el estado de una empresa.
+ * Body: { estadoEmpresaID: number }
+ * Valores válidos: 1 (Activa), 2 (Inactiva), 3 (Dada de baja)
+ */
+app.patch('/empresas/:id/estado', requireAuth, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
+  const { estadoEmpresaID } = req.body;
+
+  if (!estadoEmpresaID) {
+    return res.status(400).json({ error: 'estadoEmpresaID es requerido.' });
+  }
+
+  const estadosValidos = Object.values(ESTADOS_EMPRESA);
+  if (!estadosValidos.includes(parseInt(estadoEmpresaID))) {
+    return res.status(400).json({
+      error: `estadoEmpresaID inválido. Válidos: 1 (Activa), 2 (Inactiva), 3 (Dada de baja).`,
+    });
+  }
+
+  try {
+    const [[empresa]] = await pool.query(
+      'SELECT ID, Nombre, estadoEmpresaID FROM Empresas WHERE ID = ?',
+      [req.params.id]
+    );
+
+    if (!empresa) {
+      return res.status(404).json({ error: 'Empresa no encontrada.' });
+    }
+
+    await pool.query(
+      'UPDATE Empresas SET estadoEmpresaID = ? WHERE ID = ?',
+      [parseInt(estadoEmpresaID), req.params.id]
+    );
+
+    const [[nuevoEstado]] = await pool.query(
+      'SELECT estado FROM estadoEmpresa WHERE ID = ?',
+      [estadoEmpresaID]
+    );
+
+    res.json({
+      message: `Estado de la empresa actualizado a "${nuevoEstado?.estado ?? estadoEmpresaID}".`,
+    });
+  } catch (err) {
+    console.error('[Empresas] PATCH /empresas/:id/estado:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────
 // INICIO DEL SERVIDOR
 // ─────────────────────────────────────────────────────────────
 

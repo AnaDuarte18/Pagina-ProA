@@ -415,7 +415,28 @@ CREATE TABLE Notificacion (
 );
 
 -- =========================================================
--- 18. INSERTAR DATOS
+-- 18. EMPRESAS
+-- =========================================================
+
+CREATE TABLE estadoEmpresa (
+    ID INT AUTO_INCREMENT PRIMARY KEY,
+    estado VARCHAR(50) NOT NULL UNIQUE
+);
+
+CREATE TABLE Empresas (
+    ID INT AUTO_INCREMENT PRIMARY KEY,
+    Nombre VARCHAR(150) NOT NULL,
+    Descripcion TEXT,
+    imagen VARCHAR(500),
+    estadoEmpresaID INT NOT NULL,
+
+    CONSTRAINT FK_Empresas_Estado
+        FOREIGN KEY (estadoEmpresaID)
+        REFERENCES estadoEmpresa(ID)
+);
+
+-- =========================================================
+-- 19. INSERTAR DATOS
 -- =========================================================
 
 INSERT INTO tipoNotificacion (Tipo)
@@ -455,16 +476,22 @@ VALUES
 INSERT INTO Curso (anio, division)
 VALUES
     ('1', 'A/S'),
-    ('2', 'A/S'),
-    ('3', 'A/S'),
-    ('4', 'A/S'),
-    ('5', 'A/S'),
-    ('6', 'A/S'),
-    ('7', 'A/S'),
     ('1', 'B/F'),
+    ('2', 'A/S'),
     ('2', 'B/F'),
+    ('3', 'A/S'),
     ('3', 'B/F'),
+    ('4', 'A/S'),
     ('4', 'B/F'),
+    ('5', 'A/S'),
     ('5', 'B/F'),
+    ('6', 'A/S'),
     ('6', 'B/F'),
-    ('7', 'B/F'),
+    ('7', 'A/S'),
+    ('7', 'B/F');
+    
+INSERT INTO estadoEmpresa (estado)
+VALUES
+    ('Activa'),
+    ('Inactiva'),
+    ('Dada de baja');
