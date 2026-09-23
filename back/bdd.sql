@@ -15,7 +15,16 @@ CREATE TABLE Rol (
 );
 
 -- =========================================================
--- 2. CUENTA
+-- 2. ESTADO CUENTA
+-- =========================================================
+
+CREATE TABLE EstadoCuenta (
+    ID INT AUTO_INCREMENT PRIMARY KEY,
+    estado VARCHAR(50) NOT NULL UNIQUE
+);
+
+-- =========================================================
+-- 3. CUENTA
 -- =========================================================
 
 CREATE TABLE Cuenta (
@@ -33,20 +42,23 @@ CREATE TABLE Cuenta (
 
     estadoCuentaID INT NOT NULL,
 
+    solicitudDocente TINYINT(1) NOT NULL DEFAULT 0,
+
     CONSTRAINT FK_Cuenta_Rol
         FOREIGN KEY (rolID)
         REFERENCES Rol(ID),
 
     CONSTRAINT FK_Cuenta_EstadoCuenta
         FOREIGN KEY (estadoCuentaID)
-        REFERENCES estadoCuenta(ID),
+        REFERENCES EstadoCuenta(ID),
 
     CONSTRAINT UQ_Cuenta_OAuth
         UNIQUE (proveedorOAuth, oauthID)
 );
 
+
 -- =========================================================
--- 3. ALUMNO
+-- 4. ALUMNO
 -- =========================================================
 
 CREATE TABLE Alumno (
@@ -62,7 +74,7 @@ CREATE TABLE Alumno (
 
 
 -- =========================================================
--- 4. CURSO
+-- 5. CURSO
 -- =========================================================
 
 CREATE TABLE Curso (
@@ -76,7 +88,7 @@ CREATE TABLE Curso (
 
 
 -- =========================================================
--- 5. ALUMNO - CURSO
+-- 6. ALUMNO - CURSO
 -- =========================================================
 
 CREATE TABLE AlumnoCurso (
@@ -102,17 +114,18 @@ CREATE TABLE AlumnoCurso (
 
 
 -- =========================================================
--- 6. ASIGNATURA
+-- 7. ASIGNATURA
 -- =========================================================
 
 CREATE TABLE Asignatura (
+
     ID INT AUTO_INCREMENT PRIMARY KEY,
     Nombre VARCHAR(100) NOT NULL UNIQUE
 );
 
 
 -- =========================================================
--- 7. ESTADO
+-- 8. ESTADO
 -- =========================================================
 
 CREATE TABLE Estado (
@@ -122,7 +135,7 @@ CREATE TABLE Estado (
 
 
 -- =========================================================
--- 8. CLASIFICACION
+-- 9. CLASIFICACION
 -- =========================================================
 
 CREATE TABLE Clasificacion (
@@ -132,7 +145,7 @@ CREATE TABLE Clasificacion (
 
 
 -- =========================================================
--- 9. NOVEDAD / POSTEO
+-- 10. NOVEDAD / POSTEO
 -- =========================================================
 
 CREATE TABLE Novedad (
@@ -142,14 +155,14 @@ CREATE TABLE Novedad (
     imagen VARCHAR(500) NULL,
     cuentaID INT NOT NULL,
     fecha_publicacion DATETIME NULL,
-    asignaturaID INT NOT NULL,
+    asignaturaID INT NULL,
     estadoID INT NOT NULL,
     comentarioAdmin TEXT NULL,
     fechaDeCreacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT FK_Novedad_Cuenta
         FOREIGN KEY (cuentaID)
-        REFERENCES cuenta(ID)
+        REFERENCES Cuenta(ID)
         ON UPDATE CASCADE
         ON DELETE RESTRICT,
 
@@ -167,8 +180,9 @@ CREATE TABLE Novedad (
 );
 
 
+
 -- =========================================================
--- 10. NOVEDADES - CURSOS
+-- 11. NOVEDADES - CURSOS
 -- =========================================================
 
 CREATE TABLE NovedadesCursos (
@@ -192,7 +206,7 @@ CREATE TABLE NovedadesCursos (
 
 
 -- =========================================================
--- 11. EVENTO
+-- 12. EVENTO
 -- =========================================================
 
 CREATE TABLE Evento (
@@ -202,14 +216,14 @@ CREATE TABLE Evento (
     cuentaID INT NOT NULL,
     fecha_publicacion DATETIME NULL,
     acceso VARCHAR(50) NULL,
-    asignaturaID INT NOT NULL,
+    asignaturaID INT NULL,
     estadoID INT NOT NULL,
     comentarioAdmin TEXT NULL,
     fechaDeCreacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT FK_Evento_Cuenta
         FOREIGN KEY (cuentaID)
-        REFERENCES cuenta(ID)
+        REFERENCES Cuenta(ID)
         ON UPDATE CASCADE
         ON DELETE RESTRICT,
 
@@ -227,8 +241,10 @@ CREATE TABLE Evento (
 );
 
 
+
+
 -- =========================================================
--- 12. EVENTOS - CURSOS
+-- 13. EVENTOS - CURSOS
 -- =========================================================
 
 CREATE TABLE EventosCursos (
@@ -252,7 +268,7 @@ CREATE TABLE EventosCursos (
 
 
 -- =========================================================
--- 13. MATERIAL
+-- 14. MATERIAL
 -- =========================================================
 
 CREATE TABLE Material (
@@ -262,7 +278,6 @@ CREATE TABLE Material (
     archivo VARCHAR(500) NOT NULL,
     cuentaID INT NOT NULL,
     fecha_publicacion DATETIME NULL,
-    asignaturaID INT NOT NULL,
     clasificacionID INT NOT NULL,
     estadoID INT NOT NULL,
     fechaDeCreacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -270,12 +285,6 @@ CREATE TABLE Material (
     CONSTRAINT FK_Material_Cuenta
         FOREIGN KEY (cuentaID)
         REFERENCES Cuenta(ID)
-        ON UPDATE CASCADE
-        ON DELETE RESTRICT,
-
-    CONSTRAINT FK_Material_Asignatura
-        FOREIGN KEY (asignaturaID)
-        REFERENCES Asignatura(ID)
         ON UPDATE CASCADE
         ON DELETE RESTRICT,
 
@@ -294,7 +303,7 @@ CREATE TABLE Material (
 
 
 -- =========================================================
--- 14. MATERIAL - CURSOS
+-- 15. MATERIAL - CURSOS
 -- =========================================================
 
 CREATE TABLE MaterialCursos (
@@ -318,7 +327,31 @@ CREATE TABLE MaterialCursos (
 
 
 -- =========================================================
--- 15. HISTORIAL
+-- 16. MATERIAL - ASIGNATURAS
+-- =========================================================
+
+CREATE TABLE MaterialAsignaturas (
+    MaterialID INT NOT NULL,
+    AsignaturaID INT NOT NULL,
+
+    PRIMARY KEY (MaterialID, AsignaturaID),
+
+    CONSTRAINT FK_MaterialAsignaturas_Material
+        FOREIGN KEY (MaterialID)
+        REFERENCES Material(ID)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+
+    CONSTRAINT FK_MaterialAsignaturas_Asignatura
+        FOREIGN KEY (AsignaturaID)
+        REFERENCES Asignatura(ID)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
+);
+
+
+-- =========================================================
+-- 17. HISTORIAL (contenido)
 -- =========================================================
 
 CREATE TABLE Historial (
@@ -379,10 +412,38 @@ CREATE TABLE Historial (
         )
 );
 
+
 -- =========================================================
--- 16. TIPO NOTIFICACION
+-- 18. HISTORIAL CUENTA
 -- =========================================================
 
+CREATE TABLE HistorialCuenta (
+    ID INT AUTO_INCREMENT PRIMARY KEY,
+    cuentaID INT NOT NULL,
+    realizadoPorID INT NOT NULL,
+    campo VARCHAR(50) NOT NULL,
+    valorAnterior TEXT NULL,
+    valorNuevo TEXT NULL,
+    comentario TEXT NULL,
+    fechaDeCreacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT FK_HistorialCuenta_Cuenta
+        FOREIGN KEY (cuentaID)
+        REFERENCES Cuenta(ID)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+
+    CONSTRAINT FK_HistorialCuenta_RealizadoPor
+        FOREIGN KEY (realizadoPorID)
+        REFERENCES Cuenta(ID)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
+);
+
+
+-- =========================================================
+-- 19. TIPO NOTIFICACION
+-- =========================================================
 
 CREATE TABLE tipoNotificacion (
     ID INT AUTO_INCREMENT PRIMARY KEY,
@@ -390,7 +451,7 @@ CREATE TABLE tipoNotificacion (
 );
 
 -- =========================================================
--- 17. NOTIFICACION
+-- 20. NOTIFICACION
 -- =========================================================
 
 CREATE TABLE Notificacion (
@@ -415,7 +476,7 @@ CREATE TABLE Notificacion (
 );
 
 -- =========================================================
--- 18. EMPRESAS
+-- 21. EMPRESAS
 -- =========================================================
 
 CREATE TABLE estadoEmpresa (
@@ -436,15 +497,22 @@ CREATE TABLE Empresas (
 );
 
 -- =========================================================
--- 19. INSERTAR DATOS
+-- 22. INSERTAR DATOS
 -- =========================================================
 
-INSERT INTO tipoNotificacion (Tipo)
+-- Rol y EstadoCuenta primero (Cuenta depende de ambos)
+INSERT INTO Rol (Nombre, NivelDeAcceso)
 VALUES
-    ('Aprobación'),
-    ('Devolución'),
-    ('Eliminación'),
-    ('Nueva publicación');
+    ('Administrador', 3),
+    ('Docente', 2),
+    ('Alumno', 1);
+
+INSERT INTO EstadoCuenta (estado)
+VALUES
+    ('Pendiente'),
+    ('Activo'),
+    ('Rechazado'),
+    ('Suspendido');
 
 INSERT INTO Estado (estado)
 VALUES
@@ -453,25 +521,25 @@ VALUES
     ('Publicado'),
     ('Eliminado');
 
-INSERT INTO Rol (Nombre, NivelDeAcceso)
-VALUES
-    ('Administrador', 3),
-    ('Docente', 2),
-    ('Alumno', 1);
-
 INSERT INTO Clasificacion (Clasificacion)
 VALUES
     ('Cuadernillo'),
     ('Material de clase'),
     ('Material de lectura'),
     ('Libro');
-    
-INSERT INTO EstadoCuenta (estado)
+
+INSERT INTO tipoNotificacion (Tipo)
 VALUES
-    ('Pendiente'),
-    ('Activo'),
-    ('Rechazado'),
-    ('Suspendido');
+    ('Aprobación'),
+    ('Devolución'),
+    ('Eliminación'),
+    ('Nueva publicación');
+
+INSERT INTO estadoEmpresa (estado)
+VALUES
+    ('Activa'),
+    ('Inactiva'),
+    ('Dada de baja');
 
 INSERT INTO Curso (anio, division)
 VALUES
@@ -488,10 +556,4 @@ VALUES
     ('6', 'A/S'),
     ('6', 'B/F'),
     ('7', 'A/S'),
-    ('7', 'B/F');
-    
-INSERT INTO estadoEmpresa (estado)
-VALUES
-    ('Activa'),
-    ('Inactiva'),
-    ('Dada de baja');
+    ('7', 'B/F');
