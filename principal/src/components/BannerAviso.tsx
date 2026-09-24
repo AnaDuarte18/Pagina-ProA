@@ -1,4 +1,15 @@
-﻿export default function BannerAviso() {
+/**
+ * ─── BANNER DE AVISO INSTITUCIONAL ──────────────────────────────────────────
+ * Para activar o desactivar el banner cambiá el valor de BANNER_ACTIVE:
+ *   true  → el banner se muestra en la página de Inicio
+ *   false → el banner está oculto
+ * ────────────────────────────────────────────────────────────────────────────
+ */
+const BANNER_ACTIVE = true;
+
+export default function BannerAviso() {
+  if (!BANNER_ACTIVE) return null;
+
   return (
      <div className="bg-[#6096BA] text-white shadow-sm border-b border-[#274C77]/10">
       <div className="max-w-7xl mx-auto px-6 py-3 flex items-center gap-4 text-sm">

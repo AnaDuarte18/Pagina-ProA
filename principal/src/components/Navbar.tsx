@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import logoProa from "@/imports/image.png";
 import { useAuth } from "@/context/AuthContext";
 import NotificacionesBox from "./NotificacionesBox";
@@ -26,13 +26,21 @@ export default function Navbar({ activeNav, onNavigate }: NavbarProps) {
       return ["Inicio", "Académico", "Contacto"];
     }
 
+    // 1) Los usuarios con rol alumno en estado pendiente o rechazado tienen el MISMO acceso que un usuario sin iniciar sesión (más ¿Sos docente? si desean solicitar cambio de rol)
+    const isAlumnoSinAcceso =
+      user.roleId === 3 &&
+      (user.estadoCuentaId === 1 || user.estadoCuentaId === 3 || user.estadoCuentaId === 4);
+
     if (user.roleId === 3) {
-      // Usuario ALUMNO
-      return ["Inicio", "Académico", "Eventos", "Material", "Contacto"];
+      // 3) y 4) El elemento '¿Sos docente?' solo disponible para rol alumno
+      if (isAlumnoSinAcceso) {
+        return ["Inicio", "Académico", "Contacto", "¿Sos docente?"];
+      }
+      return ["Inicio", "Académico", "Eventos", "Material", "Contacto", "¿Sos docente?"];
     }
 
     if (user.roleId === 2) {
-      // Usuario DOCENTE
+      // Usuario DOCENTE (ya es docente, no muestra ¿Sos docente?)
       return ["Inicio", "Académico", "Eventos", "Material", "Contacto", "Nuevo"];
     }
 
@@ -73,8 +81,8 @@ export default function Navbar({ activeNav, onNavigate }: NavbarProps) {
           </div>
         </button>
 
-        {/* Nav desktop */}
-        <nav className="hidden md:flex items-center gap-5 lg:gap-7">
+        {/* Nav desktop - alineado a la derecha */}
+        <nav className="hidden md:flex items-center gap-5 lg:gap-7 ml-auto mr-4 lg:mr-6">
           {links.map((link) => {
             const isActive = activeNav === link;
             return (
@@ -150,6 +158,19 @@ export default function Navbar({ activeNav, onNavigate }: NavbarProps) {
                       </span>
                     </div>
                   </div>
+
+                  {user.roleId === 3 && (
+                    <button
+                      onClick={() => {
+                        onNavigate("¿Sos docente?");
+                        setUserDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-xs text-[#274C77] hover:bg-[#A3CEF1]/20 flex items-center gap-2 transition-colors font-semibold border-b border-[#8B8C89]/20"
+                    >
+                      <span className="text-sm">👨‍🏫</span>
+                      ¿Sos docente? Solicitar rol
+                    </button>
+                  )}
 
                   <button
                     onClick={() => {

@@ -45,6 +45,8 @@ export interface User {
   picture?: string | null;
   estadoCuentaId?: number;
   solicitudDocente?: boolean;
+  cursoId?: number | null;
+  cursoNombre?: string | null;
 }
 
 export interface AuthContextType {
@@ -52,6 +54,7 @@ export interface AuthContextType {
   token: string | null;
   loading: boolean;
   login: (user: User, token: string) => void;
+  updateUser: (updatedData: Partial<User>) => void;
   logout: () => void;
   isLoginModalOpen: boolean;
   openLoginModal: () => void;

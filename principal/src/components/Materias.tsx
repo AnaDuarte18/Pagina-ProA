@@ -1,22 +1,8 @@
-import { useMaterias } from "@/hooks/useMaterias";
-
-function MateriasSkeleton() {
-  return (
-    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      {[1, 2, 3, 4, 5, 6].map((i) => (
-        <div key={i} className="p-7 border border-[#c0cdd7] rounded-sm bg-white animate-pulse">
-          <div className="h-6 w-12 bg-[#dae4ec] rounded mb-4" />
-          <div className="h-5 bg-[#dae4ec] rounded w-2/3 mb-2" />
-          <div className="h-3 bg-[#dae4ec] rounded w-full mb-1" />
-          <div className="h-3 bg-[#dae4ec] rounded w-4/5" />
-        </div>
-      ))}
-    </div>
-  );
-}
+import { MATERIAS } from "@/mocks/materias.mock";
+import Empresas from "@/components/Empresas";
 
 export default function Materias() {
-  const { data: materias, loading, error } = useMaterias();
+  const materias = MATERIAS;
 
   return (
     <>
@@ -29,17 +15,7 @@ export default function Materias() {
           </h2>
         </div>
 
-        {loading && <MateriasSkeleton />}
-
-        {error && (
-          <div className="border border-red-200 bg-red-50 rounded-sm p-6 text-center">
-            <p className="font-mono-code text-red-500 text-xs mb-1">// error al cargar materias</p>
-            <p className="text-red-700 text-sm">{error.message}</p>
-          </div>
-        )}
-
-        {!loading && !error && (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {materias.map((m, i) => (
               <div
                 key={i}
@@ -64,7 +40,6 @@ export default function Materias() {
               </div>
             ))}
           </div>
-        )}
       </section>
 
       {/* Vida estudiantil */}
@@ -112,8 +87,9 @@ export default function Materias() {
         </div>
       </section>
 
-      {/* PASANTíAS */}
-      <section className="relative overflow-hidden bg-[#274C77] text-white">
+      {/* PASANTÍAS - Componente Empresas mapeando GET /empresas */}
+      <Empresas />
+            <section className="relative overflow-hidden bg-[#274C77] text-white">
         <div
           className="absolute inset-0 opacity-10"
           style={{
@@ -147,5 +123,6 @@ export default function Materias() {
         </div>
       </section>
     </>
+    
   );
 }

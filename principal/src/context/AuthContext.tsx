@@ -25,7 +25,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const savedIndex = parseInt(localStorage.getItem("proa_mock_index") ?? "0", 10);
       const idx = isNaN(savedIndex) ? 0 : Math.min(savedIndex, MOCK_USERS.length - 1);
       setMockIndex(idx);
-      const mockUser = MOCK_USERS[idx];
+      let mockUser = { ...MOCK_USERS[idx] };
+      const cursoGuardado = localStorage.getItem(`proa_user_curso_${mockUser.id}`);
+      if (cursoGuardado && !mockUser.cursoId) {
+        mockUser.cursoId = parseInt(cursoGuardado, 10);
+      }
+      if (localStorage.getItem(`proa_user_solicitud_docente_${mockUser.id}`) === "true") {
+        mockUser.solicitudDocente = true;
+      }
       setUser(mockUser);
       setToken("mock-token-dev");
       setLoading(false);
@@ -37,7 +44,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const storedUser = localStorage.getItem(USER_STORAGE_KEY);
       const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
       if (storedUser && storedToken) {
-        setUser(JSON.parse(storedUser));
+        let u: User = JSON.parse(storedUser);
+        const cursoGuardado = localStorage.getItem(`proa_user_curso_${u.id}`);
+        if (cursoGuardado && !u.cursoId) {
+          u.cursoId = parseInt(cursoGuardado, 10);
+        }
+        if (localStorage.getItem(`proa_user_solicitud_docente_${u.id}`) === "true") {
+          u.solicitudDocente = true;
+        }
+        setUser(u);
         setToken(storedToken);
       }
     } catch (err) {
@@ -55,6 +70,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (loginSuccess && urlToken && userParam) {
         try {
           const parsedUser: User = JSON.parse(decodeURIComponent(userParam));
+          sessionStorage.setItem("proa_just_logged_in", "true");
           login(parsedUser, urlToken);
           window.history.replaceState({}, document.title, window.location.pathname);
         } catch (e) {
@@ -78,6 +94,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } catch (err) {
       console.error("Error al guardar la sesión:", err);
     }
+  };
+
+  const updateUser = (updatedData: Partial<User>) => {
+    setUser((prev) => {
+      if (!prev) return null;
+      const updated = { ...prev, ...updatedData };
+      try {
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updated));
+      } catch (err) {
+        console.error("Error al actualizar la sesión:", err);
+      }
+      return updated;
+    });
   };
 
   const logout = () => {
@@ -110,6 +139,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         token,
         loading,
         login,
+        updateUser,
         logout,
         isLoginModalOpen,
         openLoginModal,

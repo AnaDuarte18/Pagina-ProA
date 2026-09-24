@@ -36,8 +36,10 @@ export const MOCK_USERS: User[] = [
     email: "lmendez@escuelasproa.edu.ar",
     roleId: 3,
     role: "Alumno",
-    estadoCuentaId: 2, // Activo — correo institucional
+    estadoCuentaId: 2, // Activo — correo institucional con curso ya asignado
     solicitudDocente: false,
+    cursoId: 7,
+    cursoNombre: "4° Año A / S",
     picture: null,
   },
   {
