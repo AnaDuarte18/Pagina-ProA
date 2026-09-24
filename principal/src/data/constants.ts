@@ -12,18 +12,8 @@ export const CODE_SNIPPET = `def bienvenida(nombre):
     return f"Hola, {nombre}!"
 
 # Escuela PRoA -- San Francisco
-print(bienvenida("futuro dev"))`;
+print(bienvenid@("futur@ dev"))`;
 
-export const STACK = [
-  { name: "Python", color: "#3b82f6" },
-  { name: "JavaScript", color: "#eab308" },
-  { name: "HTML & CSS", color: "#f97316" },
-  { name: "React", color: "#06b6d4" },
-  { name: "Arduino", color: "#10b981" },
-  { name: "SQL", color: "#8b5cf6" },
-  { name: "Git", color: "#ef4444" },
-  { name: "Linux", color: "#6b7280" },
-];
 
 export const TAG_COLORS: Record<string, string> = {
   Tecnología: "bg-blue-100 text-blue-800",

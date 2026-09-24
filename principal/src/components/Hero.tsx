@@ -1,4 +1,4 @@
-import { CODE_SNIPPET, STACK } from "@/data/constants";
+import { CODE_SNIPPET} from "@/data/constants";
 
 function CodeWindow({ code }: { code: string }) {
   return (
@@ -43,32 +43,16 @@ export default function Hero({ onNavigate }: HeroProps) {
             el futuro
           </h1>
           <p className="text-[#A3CEF1]/80 text-lg leading-relaxed max-w-md mb-8">
-            La única escuela secundaria experimental con orientación en programación de San Francisco.
-            Egresás con habilidades reales del siglo XXI.
+            La única escuela ProA de modalidad Técnica la encontras en San Francisco.
+            Egresás con habilidades reales del siglo XXI y mucho más.
           </p>
-          <div className="flex flex-wrap gap-4">
-            <button
-              id="hero-cta-inscripcion"
-              onClick={() => onNavigate("Inicio")}
-              className="bg-[#6096BA] text-white font-semibold px-6 py-3 rounded-sm hover:bg-[#A3CEF1] hover:text-[#274C77] transition-colors"
-            >
-              Preinscripción 2027
-            </button>
-            <button
-              id="hero-cta-plan"
-              onClick={() => onNavigate("Programación")}
-              className="border border-[#A3CEF1]/40 text-[#A3CEF1] font-semibold px-6 py-3 rounded-sm hover:border-[#A3CEF1] transition-colors"
-            >
-              Ver plan de estudios →
-            </button>
-          </div>
 
           {/* Stats */}
           <div className="grid grid-cols-3 gap-4 mt-12">
             {[
-              { valor: "5", label: "años de cursada" },
-              { valor: "800+", label: "egresados" },
-              { valor: "12", label: "lenguajes enseñados" },
+              { valor: "7", label: "años de cursada" },
+              { valor: "250+", label: "egresados" },
+              { valor: "14+", label: "materias de especialidad" },
             ].map(({ valor, label }) => (
               <div key={label} className="border border-white/10 bg-white/5 rounded-sm p-4 text-center">
                 <p className="font-display font-black text-3xl text-white">{valor}</p>
@@ -81,16 +65,6 @@ export default function Hero({ onNavigate }: HeroProps) {
         {/* Code window */}
         <div className="hidden md:block">
           <CodeWindow code={CODE_SNIPPET} />
-          <div className="mt-4 flex flex-wrap gap-2">
-            {STACK.slice(0, 6).map((s) => (
-              <span
-                key={s.name}
-                className="font-mono-code text-xs px-3 py-1 rounded-full bg-white/10 text-[#A3CEF1] border border-[#A3CEF1]/20"
-              >
-                {s.name}
-              </span>
-            ))}
-          </div>
         </div>
       </div>
     </section>

@@ -112,7 +112,7 @@ export default function Materias() {
         </div>
       </section>
 
-      {/* CTA Preinscripción */}
+      {/* PASANTíAS */}
       <section className="relative overflow-hidden bg-[#274C77] text-white">
         <div
           className="absolute inset-0 opacity-10"
@@ -124,18 +124,18 @@ export default function Materias() {
         />
         <div className="relative max-w-7xl mx-auto px-6 py-20 flex flex-col md:flex-row items-center justify-between gap-8">
           <div>
-            <p className="font-mono-code text-[#A3CEF1] text-xs mb-3">// ¿empezamos?</p>
+            <p className="font-mono-code text-[#A3CEF1] text-xs mb-3">// pasantías</p>
             <h2 className="font-display font-black text-4xl md:text-5xl leading-tight mb-3">
-              ¿Querés aprender<br />a programar?
+              ¿Te Interesa<br />Aceptar Pasantes?
             </h2>
-            <p className="text-[#A3CEF1]/80 text-lg">Preinscripción abierta del 1 al 30 de octubre de 2026.</p>
+            <p className="text-[#A3CEF1]/80 text-lg">Si tenés o conocés una empresa a la que le interesaría aceptar pasantes contactate con nosotros.</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-4 shrink-0">
             <a
               href="#"
               className="bg-[#A3CEF1] text-[#274C77] font-bold px-8 py-4 rounded-sm hover:bg-white transition-colors text-center"
             >
-              Formulario online
+              Contacto
             </a>
             <a
               href="#"

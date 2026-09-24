@@ -1,5 +1,3 @@
-import { STACK } from "@/data/constants";
-
 export default function OrientacionPrincipal() {
   return (
     <section id="programacion" className="bg-[#0d1b2a] text-white py-20">
@@ -18,37 +16,29 @@ export default function OrientacionPrincipal() {
           </p>
         </div>
 
-        {/* Stack de tecnologías */}
-        <div className="flex flex-wrap gap-3 mb-14">
-          {STACK.map((s) => (
-            <div
-              key={s.name}
-              className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-sm px-4 py-2 hover:border-[#6096BA]/50 transition-colors"
-            >
-              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: s.color }} />
-              <span className="font-mono-code text-sm text-[#A3CEF1]">{s.name}</span>
-            </div>
-          ))}
-        </div>
-
         {/* Fases del plan de estudios */}
         <div className="grid md:grid-cols-3 gap-6">
           {[
             {
-              año: "1.° y 2.° año",
+              año: "1.°, 2.° y 3.° año",
               titulo: "Fundamentos",
-              items: ["Lógica y algoritmos", "Python básico e intermedio", "Introducción a la web", "Control de versiones con Git"],
+              items: ["Lógica y algoritmos", "Taller de Inglés Aplicado", "Scratch", "Pseint", "Educación Tecnológica", "LibreCAD y AutoCAD", "Fundamentos de Python", "Arduino y robótica"],
             },
             {
-              año: "3.° y 4.° año",
+              año: "4.° y 5.° año",
+              titulo: "Desarrollo Web",
+              items: ["HTML y CSS", "Javascript", "Excel", "Diseño de Interfaces"],
+            },
+            {
+              año: "6.° año",
               titulo: "Desarrollo",
-              items: ["JavaScript & React", "Bases de datos SQL", "Arduino y robótica", "Proyectos colaborativos"],
+              items: ["Bases de datos SQL","Vue.js", "Control de Versiones Git", "Principios del desarrollo Backend"],
             },
             {
-              año: "5.° año",
-              titulo: "Proyecto final",
-              items: ["Desarrollo de producto completo", "Seguridad y testing", "Demo Day público", "Vinculación con empresas"],
-            },
+              año: "7.° año",
+              titulo: "Pasantías",
+              items: ["Pasantías", "Inserción al mercado laboral", "Simulación de Entrevista Laboral y desarrollo de Curriculum Vitae", "Elaboración de Charla TED"],
+            }
           ].map((fase, i) => (
             <div key={i} className="bg-white/5 border border-white/10 rounded-sm p-6 hover:border-[#6096BA]/40 transition-colors">
               <p className="font-mono-code text-[#6096BA] text-xs mb-1">{fase.año}</p>

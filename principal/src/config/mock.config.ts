@@ -34,6 +34,14 @@ export const MOCK_CONFIG = {
 
   /** GET /api/materias */
   materias: envFlag("VITE_MOCK_MATERIAS", true),
+
+  /**
+   * Autenticación mock: omite Google OAuth y loguea con un usuario de MOCK_USERS.
+   * El usuario activo se selecciona con VITE_MOCK_AUTH_INDEX (0-based, default 0).
+   * Ponelo en false cuando el backend de auth esté disponible.
+   */
+  auth: envFlag("VITE_MOCK_AUTH", true),
 } as const;
+
 
 export type MockKey = keyof typeof MOCK_CONFIG;

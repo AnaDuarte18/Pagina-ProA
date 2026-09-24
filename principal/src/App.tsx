@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import OrientacionPrincipal from "@/components/OrientacionPrincipal";
@@ -8,6 +8,10 @@ import Materias from "@/components/Materias";
 import Material from "@/components/Material";
 import Footer from "@/components/Footer";
 import LoginModal from "@/components/LoginModal";
+import BannerAviso from "@/components/BannerAviso";
+import Contacto from "@/components/Contacto";
+import CrearPublicacion from "@/components/CrearPublicacion";
+import AdminPanel from "@/components/AdminPanel";
 import { AuthProvider } from "@/context/AuthContext";
 
 export default function App() {
@@ -24,69 +28,68 @@ export default function App() {
         {/* Modal de inicio de sesión con Google */}
         <LoginModal />
 
-        {/* Barra de navegación */}
+        {/* Barra de navegación con roles y permisos */}
         <Navbar activeNav={activeNav} onNavigate={handleNavigate} />
 
-      {/* AVISO*/}
-      {activeNav === "Inicio" && (
-        <div className="bg-[#6096BA] text-white">
-          <div className="max-w-7xl mx-auto px-6 py-3 flex items-center gap-4 text-sm">
-            <span className="font-mono-code font-bold text-xs shrink-0 bg-white/20 px-2 py-0.5 rounded">
-              AVISO
-            </span>
-            <p>
-              Preinscripción 2027 abierta del <strong>1 al 30 de octubre</strong>. Cupos limitados.
-              Completá el formulario o acercate a la secretaría.
-            </p>
-          </div>
-        </div>
-      )}
+        {/* Banner de aviso institucional */}
+        {activeNav === "Inicio" && <BannerAviso />}
 
-      {/* Router de páginas */}
-      {activeNav === "Material" ? (
-        <Material />
-      ) : activeNav === "Programación" ? (
-        <>
-          <OrientacionPrincipal />
-          <Footer onNavigate={handleNavigate} />
-        </>
-      ) : activeNav === "Académico" ? (
-        <>
-          <Materias />
-          <Footer onNavigate={handleNavigate} />
-        </>
-      ) : activeNav === "Noticias" ? (
-        <>
-          <div className="bg-[#274C77] text-white">
-            <div className="max-w-7xl mx-auto px-6 py-14">
-              <p className="font-mono-code text-[#A3CEF1] text-xs mb-3">// noticias.filter(publicado)</p>
-              <h1 className="font-display text-4xl md:text-5xl font-black">
-                Noticias<br />
-                <span className="text-[#A3CEF1]">de la escuela</span>
-              </h1>
+        {/* Router de páginas / vistas */}
+        {activeNav === "Administrar" ? (
+          <AdminPanel />
+        ) : activeNav === "Nuevo" ? (
+          <CrearPublicacion onPublicado={() => handleNavigate("Inicio")} />
+        ) : activeNav === "Material" ? (
+          <Material />
+        ) : activeNav === "Eventos" ? (
+          <>
+            <div className="bg-[#274C77] text-white py-12 px-6">
+              <div className="max-w-7xl mx-auto">
+                <span className="font-mono-code text-[#A3CEF1] text-xs font-semibold uppercase tracking-wider block mb-2">
+                  // Calendario Escolar & Fechas Clave
+                </span>
+                <h1 className="text-3xl md:text-5xl font-black">
+                  Eventos <span className="text-[#A3CEF1]">Académicos</span>
+                </h1>
+                <p className="text-[#E7ECEF]/80 text-xs md:text-sm mt-2 max-w-2xl">
+                  Consultá las fechas de actividades, entregas y talleres habilitados para tu curso.
+                </p>
+              </div>
             </div>
-          </div>
-          <Publicaciones />
-          <Footer onNavigate={handleNavigate} />
-        </>
-      ) : activeNav === "Actividades" ? (
-        <>
-          <Calendario />
-          <Footer onNavigate={handleNavigate} />
-        </>
-      ) : activeNav === "Contacto" ? (
-        <Footer onNavigate={handleNavigate} />
-      ) : (
-        /* Inicio — página completa */
-        <>
-          <Hero onNavigate={handleNavigate} />
-          <OrientacionPrincipal />
-          <Publicaciones />
-          <Calendario />
-          <Materias />
-          <Footer onNavigate={handleNavigate} />
-        </>
-      )}
+            <Calendario />
+            <Footer onNavigate={handleNavigate} />
+          </>
+        ) : activeNav === "Académico" ? (
+          <>
+            <div className="bg-[#274C77] text-white py-12 px-6">
+              <div className="max-w-7xl mx-auto">
+                <span className="font-mono-code text-[#A3CEF1] text-xs font-semibold uppercase tracking-wider block mb-2">
+                  // Áreas de Conocimiento & Orientación
+                </span>
+                <h1 className="text-3xl md:text-5xl font-black">
+                  Propuesta <span className="text-[#A3CEF1]">Académica</span>
+                </h1>
+                <p className="text-[#E7ECEF]/80 text-xs md:text-sm mt-2 max-w-2xl">
+                  Formación técnica intensiva en Programación articulada con asignaturas formativas y pedagógicas.
+                </p>
+              </div>
+            </div>
+            <Materias />
+            <OrientacionPrincipal />
+            <Footer onNavigate={handleNavigate} />
+          </>
+        ) : activeNav === "Contacto" ? (
+          <Contacto />
+        ) : (
+          /* Inicio — página principal con novedades destacadas */
+          <>
+            <Hero onNavigate={handleNavigate} />
+            <Publicaciones />
+            <OrientacionPrincipal />
+            <Calendario />
+            <Footer onNavigate={handleNavigate} />
+          </>
+        )}
       </div>
     </AuthProvider>
   );
