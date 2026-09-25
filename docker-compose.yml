@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: mysql:8.0
@@ -12,6 +10,8 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
       - ./back/bdd.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - default
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
@@ -39,6 +39,9 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - default
+      - coolify
 
   frontend:
     build:
@@ -53,6 +56,15 @@ services:
       - 80
     depends_on:
       - backend
+    networks:
+      - default
+      - coolify
 
 volumes:
   mysql_data:
+
+networks:
+  default:
+  coolify:
+    name: coolify
+    external: true
