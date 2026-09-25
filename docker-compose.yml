@@ -42,6 +42,14 @@ services:
     networks:
       - default
       - coolify
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=coolify"
+      - "traefik.http.routers.proa-backend.rule=Host(`api.proatecnicasf.com.ar`)"
+      - "traefik.http.routers.proa-backend.entrypoints=http,https"
+      - "traefik.http.routers.proa-backend.tls=true"
+      - "traefik.http.routers.proa-backend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.proa-backend.loadbalancer.server.port=3000"
 
   frontend:
     build:
@@ -59,6 +67,14 @@ services:
     networks:
       - default
       - coolify
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=coolify"
+      - "traefik.http.routers.proa-frontend.rule=Host(`proatecnicasf.com.ar`) || Host(`www.proatecnicasf.com.ar`)"
+      - "traefik.http.routers.proa-frontend.entrypoints=http,https"
+      - "traefik.http.routers.proa-frontend.tls=true"
+      - "traefik.http.routers.proa-frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.proa-frontend.loadbalancer.server.port=80"
 
 volumes:
   mysql_data:
