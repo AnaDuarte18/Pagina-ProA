@@ -1,0 +1,86 @@
+services:
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${DB_NAME:-proa}
+      MYSQL_USER: ${DB_USER:-proa_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-proa_pass}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./back/bdd.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - default
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./back
+      dockerfile: Dockerfile
+    restart: always
+    expose:
+      - 3000
+    environment:
+      PORT: 3000
+      FRONTEND_URL: ${FRONTEND_URL}
+      DB_HOST: db
+      DB_USER: ${DB_USER:-proa_user}
+      DB_PASSWORD: ${DB_PASSWORD:-proa_pass}
+      DB_NAME: ${DB_NAME:-proa}
+      JWT_SECRET: ${JWT_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_REDIRECT: ${GOOGLE_REDIRECT}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - default
+      - coolify
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=coolify"
+      - "traefik.http.routers.proa-backend.rule=Host(`api.proatecnicasf.com.ar`)"
+      - "traefik.http.routers.proa-backend.entrypoints=http,https"
+      - "traefik.http.routers.proa-backend.tls=true"
+      - "traefik.http.routers.proa-backend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.proa-backend.loadbalancer.server.port=3000"
+
+  frontend:
+    build:
+      context: ./principal
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
+        VITE_MOCK_AUTH: ${VITE_MOCK_AUTH:-false}
+    restart: always
+    expose:
+      - 80
+    depends_on:
+      - backend
+    networks:
+      - default
+      - coolify
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=coolify"
+      - "traefik.http.routers.proa-frontend.rule=Host(`proatecnicasf.com.ar`) || Host(`www.proatecnicasf.com.ar`)"
+      - "traefik.http.routers.proa-frontend.entrypoints=http,https"
+      - "traefik.http.routers.proa-frontend.tls=true"
+      - "traefik.http.routers.proa-frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.proa-frontend.loadbalancer.server.port=80"
+
+volumes:
+  mysql_data:
+
+networks:
+  default:
+  coolify:
+    name: coolify
+    external: true
