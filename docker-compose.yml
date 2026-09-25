@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${DB_NAME:-proa}
+      MYSQL_USER: ${DB_USER:-proa_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-proa_pass}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./back/bdd.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./back
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      PORT: 3000
+      FRONTEND_URL: ${FRONTEND_URL}
+      DB_HOST: db
+      DB_USER: ${DB_USER:-proa_user}
+      DB_PASSWORD: ${DB_PASSWORD:-proa_pass}
+      DB_NAME: ${DB_NAME:-proa}
+      JWT_SECRET: ${JWT_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_REDIRECT: ${GOOGLE_REDIRECT}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./principal
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
+        VITE_MOCK_AUTH: ${VITE_MOCK_AUTH:-false}
+    restart: always
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:
