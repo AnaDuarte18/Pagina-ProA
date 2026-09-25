@@ -1353,6 +1353,69 @@ app.get('/eventos', requireAuth, async (req, res) => {
 });
 
 /**
+ * GET /eventos/:id
+ * Auth requerida. Devuelve un evento por ID respetando los mismos permisos que GET /eventos.
+ */
+app.get('/eventos/:id', requireAuth, async (req, res) => {
+  const eventoID = parseInt(req.params.id, 10);
+  if (isNaN(eventoID)) return res.status(400).json({ error: 'ID inválido.' });
+
+  try {
+    const cuenta = req.userJwt;
+
+    // Construir la query base
+    const baseSelect = `
+      SELECT e.ID, e.titulo, e.cuerpo, e.cuentaID, c.NombreApellido AS autorNombre,
+             e.fecha_publicacion, e.asignaturaID, a.Nombre AS asignaturaNombre,
+             e.estadoID, es.estado AS estadoNombre, e.comentarioAdmin, e.fechaDeCreacion,
+             GROUP_CONCAT(DISTINCT ec.CursoID) AS cursoIDs
+      FROM Evento e
+      LEFT JOIN Cuenta c ON e.cuentaID = c.ID
+      LEFT JOIN Asignatura a ON e.asignaturaID = a.ID
+      LEFT JOIN Estado es ON e.estadoID = es.ID
+      LEFT JOIN EventosCursos ec ON e.ID = ec.EventoID
+    `;
+
+    let rows;
+
+    if (cuenta.roleId === ROLES.ADMINISTRADOR) {
+      [[rows]] = await pool.query(
+        `${baseSelect} WHERE e.ID = ? AND e.estadoID != ? GROUP BY e.ID`,
+        [eventoID, ESTADOS_CONTENIDO.ELIMINADO]
+      );
+    } else if (cuenta.roleId === ROLES.DOCENTE) {
+      [[rows]] = await pool.query(
+        `${baseSelect} WHERE e.ID = ? AND (e.estadoID = ? OR (e.cuentaID = ? AND e.estadoID != ?)) GROUP BY e.ID`,
+        [eventoID, ESTADOS_CONTENIDO.PUBLICADO, cuenta.id, ESTADOS_CONTENIDO.ELIMINADO]
+      );
+    } else {
+      // Alumno: solo publicados de su curso
+      const [[alumno]] = await pool.query('SELECT a.ID FROM Alumno a WHERE a.cuentaID = ?', [cuenta.id]);
+      if (!alumno) return res.status(403).json({ error: 'Sin perfil de alumno.' });
+
+      const [[cursoActual]] = await pool.query(
+        'SELECT CursoID FROM AlumnoCurso WHERE AlumnoID = ? AND fechaHasta IS NULL', [alumno.ID]
+      );
+      if (!cursoActual) return res.status(403).json({ error: 'Sin curso asignado.' });
+
+      [[rows]] = await pool.query(
+        `${baseSelect}
+         JOIN EventosCursos ec2 ON e.ID = ec2.EventoID AND ec2.CursoID = ?
+         WHERE e.ID = ? AND e.estadoID = ?
+         GROUP BY e.ID`,
+        [cursoActual.CursoID, eventoID, ESTADOS_CONTENIDO.PUBLICADO]
+      );
+    }
+
+    if (!rows) return res.status(404).json({ error: 'Evento no encontrado o sin acceso.' });
+    res.json(rows);
+  } catch (err) {
+    console.error('[Eventos] GET /eventos/:id:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * POST /eventos
  * Admin (publica directo) o Docente (queda Pendiente).
  * Body: { titulo, cuerpo, fecha_publicacion, asignaturaID?, cursoIDs: number[] }

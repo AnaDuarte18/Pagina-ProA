@@ -1,25 +1,38 @@
-import { MOCK_CONFIG } from "@/config/mock.config";
-import { EVENTOS } from "@/mocks/eventos.mock";
-import type { Evento } from "@/types";
+import type { EventoBackendItem } from "@/types";
 
-const BASE = import.meta.env.VITE_API_BASE_URL ?? "";
+const BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
 
-/**
- * Devuelve la lista de eventos del calendario.
- * - MOCK_CONFIG.eventos = true  → datos locales (sin red)
- * - MOCK_CONFIG.eventos = false → GET ${BASE}/api/eventos
- */
-export async function fetchEventos(): Promise<Evento[]> {
-  if (MOCK_CONFIG.eventos) {
-    await delay(0);
-    return EVENTOS;
-  }
-
-  const res = await fetch(`${BASE}/api/eventos`);
-  if (!res.ok) throw new Error(`[eventos] ${res.status} ${res.statusText}`);
-  return res.json() as Promise<Evento[]>;
+function authHeaders(token?: string | null): HeadersInit {
+  const t = token || (typeof window !== "undefined" ? localStorage.getItem("proa_token") : null);
+  return t ? { Authorization: `Bearer ${t}` } : {};
 }
 
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+/** Todos los eventos publicados (requiere auth en el backend) */
+export async function fetchEventosPublicados(token?: string | null): Promise<EventoBackendItem[]> {
+  const res = await fetch(`${BASE}/eventos?estadoID=3`, {
+    headers: authHeaders(token),
+  });
+  if (!res.ok) throw new Error(`[eventos] ${res.status} ${res.statusText}`);
+  return res.json();
+}
+
+/** Un evento por ID (requiere auth en el backend) con fallback a la lista si /eventos/:id da 404 */
+export async function fetchEventoById(id: number, token?: string | null): Promise<EventoBackendItem> {
+  try {
+    const res = await fetch(`${BASE}/eventos/${id}`, {
+      headers: authHeaders(token),
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn(`[eventos] No se pudo obtener /eventos/${id}, intentando fallback a lista:`, err);
+  }
+
+  // Fallback: si /eventos/:id no responde 200 (ej. 404 por endpoint no reiniciado), buscarlo en la lista de eventos
+  const todos = await fetchEventosPublicados(token);
+  const encontrado = todos.find((e) => Number(e.ID) === Number(id));
+  if (encontrado) return encontrado;
+
+  throw new Error(`[eventos] Evento #${id} no encontrado.`);
 }

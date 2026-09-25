@@ -1,4 +1,6 @@
-import { CODE_SNIPPET} from "@/data/constants";
+import { useNavigate } from "react-router-dom";
+import { CODE_SNIPPET } from "@/data/constants";
+import { pageToPath } from "@/App";
 
 function CodeWindow({ code }: { code: string }) {
   return (
@@ -16,11 +18,9 @@ function CodeWindow({ code }: { code: string }) {
   );
 }
 
-interface HeroProps {
-  onNavigate: (page: string) => void;
-}
+export default function Hero() {
+  const navigate = useNavigate();
 
-export default function Hero({ onNavigate }: HeroProps) {
   return (
     <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-[#274C77]">
       {/* Grid de fondo */}
@@ -46,6 +46,13 @@ export default function Hero({ onNavigate }: HeroProps) {
             La única escuela ProA de modalidad Técnica la encontras en San Francisco.
             Egresás con habilidades reales del siglo XXI y mucho más.
           </p>
+
+          <button
+            onClick={() => navigate(pageToPath("Académico"))}
+            className="inline-flex items-center gap-2 bg-[#A3CEF1] text-[#274C77] font-bold px-6 py-3 rounded text-sm hover:bg-white transition-colors shadow-sm"
+          >
+            Conocé la propuesta académica →
+          </button>
 
           {/* Stats */}
           <div className="grid grid-cols-3 gap-4 mt-12">

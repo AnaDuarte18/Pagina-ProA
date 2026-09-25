@@ -124,7 +124,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const switchMockUser = (index: number) => {
     const idx = Math.min(Math.max(0, index), MOCK_USERS.length - 1);
     setMockIndex(idx);
-    setUser(MOCK_USERS[idx]);
+    let mockUser = { ...MOCK_USERS[idx] };
+    const cursoGuardado = localStorage.getItem(`proa_user_curso_${mockUser.id}`);
+    if (cursoGuardado && !mockUser.cursoId) {
+      mockUser.cursoId = parseInt(cursoGuardado, 10);
+    }
+    if (localStorage.getItem(`proa_user_solicitud_docente_${mockUser.id}`) === "true") {
+      mockUser.solicitudDocente = true;
+    }
+    setUser(mockUser);
     setToken("mock-token-dev");
     localStorage.setItem("proa_mock_index", String(idx));
   };

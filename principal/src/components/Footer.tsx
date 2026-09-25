@@ -1,11 +1,11 @@
+import { useNavigate } from "react-router-dom";
 import logoProa from "@/imports/image.png";
 import { NAV_LINKS } from "@/data/constants";
+import { pageToPath } from "@/App";
 
-interface FooterProps {
-  onNavigate: (page: string) => void;
-}
+export default function Footer() {
+  const navigate = useNavigate();
 
-export default function Footer({ onNavigate }: FooterProps) {
   return (
     <footer className="bg-[#0d1b2a] text-[#8B8C89]">
       <div className="max-w-7xl mx-auto px-6 py-14 grid md:grid-cols-4 gap-10">
@@ -32,7 +32,7 @@ export default function Footer({ onNavigate }: FooterProps) {
             {NAV_LINKS.map((l) => (
               <li key={l}>
                 <button
-                  onClick={() => onNavigate(l)}
+                  onClick={() => navigate(pageToPath(l))}
                   className="hover:text-white transition-colors text-left"
                 >
                   {l}

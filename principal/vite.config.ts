@@ -18,9 +18,12 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     strictPort: false,
+    // Redirige todas las rutas al index.html para que React Router pueda gestionarlas
+    historyApiFallback: true,
   },
   preview: {
     host: '0.0.0.0',
     port: 4173,
   },
 })
+

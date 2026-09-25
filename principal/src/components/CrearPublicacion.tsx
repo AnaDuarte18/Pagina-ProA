@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import type { CursoItem } from "@/types";
 
@@ -27,7 +27,9 @@ export default function CrearPublicacion({ onPublicado, objetoEditar, tipoInicia
   const [fechaEvento, setFechaEvento] = useState(objetoEditar?.fecha_publicacion ? objetoEditar.fecha_publicacion.substring(0, 10) : "");
   const [clasificacionID, setClasificacionID] = useState(objetoEditar?.clasificacionID || 1);
   const [selectedCursos, setSelectedCursos] = useState<number[]>([]);
-  const [asignaturaID, setAsignaturaID] = useState<number>(objetoEditar?.asignaturaID || 1);
+  const [asignaturaID, setAsignaturaID] = useState<string>(
+    objetoEditar?.asignaturaID ? String(objetoEditar.asignaturaID) : ""
+  );
 
   // Cargar cursos desde el backend
   useEffect(() => {
@@ -105,7 +107,7 @@ export default function CrearPublicacion({ onPublicado, objetoEditar, tipoInicia
           titulo,
           cuerpo,
           imagen: imagenOArchivo || null,
-          asignaturaID: asignaturaID || null,
+          asignaturaID: asignaturaID ? parseInt(asignaturaID) : null,
         };
       } else if (tipo === "evento") {
         endpoint = objetoEditar?.ID ? `${BASE}/eventos/${objetoEditar.ID}` : `${BASE}/eventos`;
@@ -118,7 +120,7 @@ export default function CrearPublicacion({ onPublicado, objetoEditar, tipoInicia
           titulo,
           cuerpo,
           fecha_publicacion: fechaEvento || new Date().toISOString(),
-          asignaturaID: asignaturaID || null,
+          asignaturaID: asignaturaID ? parseInt(asignaturaID) : null,
           cursoIDs: selectedCursos,
         };
       } else if (tipo === "material") {
@@ -128,7 +130,7 @@ export default function CrearPublicacion({ onPublicado, objetoEditar, tipoInicia
           descripcion: cuerpo,
           archivo: imagenOArchivo || "https://ejemplo.com/archivo.pdf",
           clasificacionID: clasificacionID,
-          asignaturaIDs: [asignaturaID],
+          asignaturaIDs: asignaturaID ? [parseInt(asignaturaID)] : [],
           cursoIDs: selectedCursos, // Vacío = visible para todos los alumnos
         };
       }
@@ -279,14 +281,34 @@ export default function CrearPublicacion({ onPublicado, objetoEditar, tipoInicia
                 </label>
                 <select
                   value={asignaturaID}
-                  onChange={(e) => setAsignaturaID(parseInt(e.target.value))}
+                  onChange={(e) => setAsignaturaID(e.target.value)}
                   className="w-full text-xs px-3.5 py-2.5 rounded-lg border border-[#8B8C89]/30 text-[#0d1b2a] bg-white focus:outline-none focus:border-[#6096BA]"
                 >
-                  <option value={1}>Programación</option>
-                  <option value={2}>Desarrollo Web & Apps</option>
-                  <option value={3}>Robótica & IoT</option>
-                  <option value={4}>Matemática Aplicada</option>
-                  <option value={5}>Ciencias & Tecnología</option>
+                  <option value="">— Sin asignatura —</option>
+                  <option value="1">Inglés</option>
+                  <option value="2">TIA</option>
+                  <option value="3">Dibujo Técnico</option>
+                  <option value="4">Educación Tecnológica</option>
+                  <option value="5">Club de Ciencias</option>
+                  <option value="6">Taller de Laboratorio</option>
+                  <option value="7">Programación</option>
+                  <option value="8">Marco Jurídico</option>
+                  <option value="9">Economía</option>
+                  <option value="10">Emprendimientos</option>
+                  <option value="11">FVT</option>
+                  <option value="12">Ciudadanía y Política</option>
+                  <option value="13">FAT</option>
+                  <option value="14">Ciudadanía y Participación</option>
+                  <option value="15">Lengua y Literatura</option>
+                  <option value="16">Química</option>
+                  <option value="17">Biología</option>
+                  <option value="18">Física</option>
+                  <option value="19">Matemática</option>
+                  <option value="20">Análisis Matemático</option>
+                  <option value="21">Lógica Matemática</option>
+                  <option value="22">Club de Arte</option>
+                  <option value="23">Artes visuales</option>
+                  <option value="24">Música</option>
                 </select>
               </div>
 

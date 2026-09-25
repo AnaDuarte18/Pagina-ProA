@@ -556,4 +556,33 @@ VALUES
     ('6', 'A/S'),
     ('6', 'B/F'),
     ('7', 'A/S'),
-    ('7', 'B/F');
+    ('7', 'B/F');
+
+-- Asignaturas de la escuela PRoA (deben coincidir con los IDs usados en el frontend)
+INSERT INTO Asignatura (Nombre)
+VALUES
+    ('Inglés'),                      -- ID 1
+    ('TIA'),                         -- ID 2
+    ('Dibujo Técnico'),              -- ID 3
+    ('Educación Tecnológica'),       -- ID 4
+    ('Club de Ciencias'),            -- ID 5
+    ('Taller de Laboratorio'),       -- ID 6
+    ('Programación'),                -- ID 7
+    ('Marco Jurídico'),              -- ID 8
+    ('Economía'),                    -- ID 9
+    ('Emprendimientos'),             -- ID 10
+    ('FVT'),                         -- ID 11
+    ('Ciudadanía y Política'),       -- ID 12
+    ('FAT'),                         -- ID 13
+    ('Ciudadanía y Participación'),  -- ID 14
+    ('Lengua y Literatura'),         -- ID 15
+    ('Química'),                     -- ID 16
+    ('Biología'),                    -- ID 17
+    ('Física'),                      -- ID 18
+    ('Matemática'),                  -- ID 19
+    ('Análisis Matemático'),         -- ID 20
+    ('Lógica Matemática'),           -- ID 21
+    ('Club de Arte'),                -- ID 22
+    ('Artes visuales'),              -- ID 23
+    ('Música');                      -- ID 24
+

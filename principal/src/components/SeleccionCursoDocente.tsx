@@ -116,6 +116,18 @@ export default function SeleccionCursoDocente({ onCompletado }: SeleccionCursoDo
 
         {/* Cuerpo principal */}
         <div className="bg-white rounded-b-xl p-6 md:p-10 shadow-lg border-x border-b border-[#8B8C89]/20">
+          
+          {user?.roleId === 3 && user?.estadoCuentaId !== 2 && (
+            <div className="mb-6 p-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-sm flex items-center gap-3 shadow-sm">
+              <span className="text-lg shrink-0">⚠️</span>
+              <span>
+                <strong>Atención:</strong> Tu cuenta aún está inactiva o pendiente de validación.
+                Para habilitar la navegación en la plataforma es <strong>obligatorio</strong> que selecciones
+                tu curso de alumno o envíes una solicitud de acreditación docente.
+              </span>
+            </div>
+          )}
+
           {/* Mensajes de feedback */}
           {mensajeExito && (
             <div className="mb-6 p-4 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-3">

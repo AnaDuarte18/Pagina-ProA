@@ -1,13 +1,16 @@
-import { useNoticias } from "@/hooks/useNoticias";
-import { TAG_COLORS } from "@/data/constants";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { fetchNovedadesRecientes } from "@/services/noticias.service";
+import type { NovedadBackendItem } from "@/types";
+import NovedadCard from "./NovedadCard";
 
-function NoticiasSkeleton() {
+function Skeleton() {
   return (
     <div className="grid md:grid-cols-3 gap-8">
       {[1, 2, 3].map((i) => (
-        <div key={i} className="bg-white rounded-sm overflow-hidden border border-[#c0cdd7] animate-pulse">
+        <div key={i} className="bg-white rounded-lg overflow-hidden border border-[#c0cdd7] animate-pulse">
           <div className="aspect-[16/10] bg-[#dae4ec]" />
-          <div className="p-6 flex flex-col gap-3">
+          <div className="p-5 flex flex-col gap-3">
             <div className="h-3 bg-[#dae4ec] rounded w-1/3" />
             <div className="h-4 bg-[#dae4ec] rounded w-full" />
             <div className="h-4 bg-[#dae4ec] rounded w-4/5" />
@@ -19,7 +22,17 @@ function NoticiasSkeleton() {
 }
 
 export default function Publicaciones() {
-  const { data: noticias, loading, error } = useNoticias();
+  const navigate = useNavigate();
+  const [novedades, setNovedades] = useState<NovedadBackendItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchNovedadesRecientes(3)
+      .then(setNovedades)
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  }, []);
 
   return (
     <section id="noticias" className="max-w-7xl mx-auto px-6 py-20">
@@ -30,50 +43,47 @@ export default function Publicaciones() {
             Noticias<br />de la escuela
           </h2>
         </div>
-        <a
-          href="#"
+        <button
+          onClick={() => navigate("/novedades")}
           className="hidden md:inline-flex items-center gap-1 text-sm font-semibold text-[#274C77] hover:text-[#6096BA] transition-colors"
         >
           Ver todas →
-        </a>
+        </button>
       </div>
 
-      {loading && <NoticiasSkeleton />}
+      {loading && <Skeleton />}
 
       {error && (
         <div className="border border-red-200 bg-red-50 rounded-sm p-6 text-center">
           <p className="font-mono-code text-red-500 text-xs mb-1">// error al cargar noticias</p>
-          <p className="text-red-700 text-sm">{error.message}</p>
+          <p className="text-red-700 text-sm">{error}</p>
         </div>
       )}
 
-      {!loading && !error && (
+      {!loading && !error && novedades.length === 0 && (
+        <div className="text-center py-16 text-[#8B8C89]">
+          <p className="font-mono-code text-xs mb-2">// sin publicaciones</p>
+          <p className="text-sm">No hay novedades publicadas todavía.</p>
+        </div>
+      )}
+
+      {!loading && !error && novedades.length > 0 && (
         <div className="grid md:grid-cols-3 gap-8">
-          {noticias.map((n, i) => (
-            <article
-              key={i}
-              className="group bg-white rounded-sm overflow-hidden border border-[#c0cdd7] hover:border-[#6096BA] transition-colors cursor-pointer"
-            >
-              <div className="aspect-[16/10] overflow-hidden bg-[#dae4ec]">
-                <img
-                  src={n.img}
-                  alt={n.alt}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-              </div>
-              <div className="p-6">
-                <div className="flex items-center gap-3 mb-3">
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${TAG_COLORS[n.tag]}`}>
-                    {n.tag}
-                  </span>
-                  <span className="text-xs text-[#8B8C89]">{n.fecha}</span>
-                </div>
-                <h3 className="font-display font-bold text-lg leading-snug group-hover:text-[#274C77] transition-colors">
-                  {n.titulo}
-                </h3>
-              </div>
-            </article>
+          {novedades.map((n) => (
+            <NovedadCard key={n.ID} novedad={n} />
           ))}
+        </div>
+      )}
+
+      {/* Ver todas (mobile) */}
+      {!loading && !error && (
+        <div className="mt-8 text-center md:hidden">
+          <button
+            onClick={() => navigate("/novedades")}
+            className="text-sm font-semibold text-[#274C77] hover:text-[#6096BA] transition-colors"
+          >
+            Ver todas las novedades →
+          </button>
         </div>
       )}
     </section>

@@ -1,38 +1,38 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import logoProa from "@/imports/image.png";
 import { useAuth } from "@/context/AuthContext";
 import NotificacionesBox from "./NotificacionesBox";
+import { pageToPath } from "@/App";
 
 interface NavbarProps {
-  activeNav: string;
-  onNavigate: (page: string) => void;
+  bloqueado?: boolean;
 }
 
-export default function Navbar({ activeNav, onNavigate }: NavbarProps) {
+export default function Navbar({ bloqueado }: NavbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const { user, logout, openLoginModal } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const handleNavigate = (link: string) => {
-    onNavigate(link);
+  const handleNavigate = (page: string) => {
+    navigate(pageToPath(page));
     setMenuOpen(false);
   };
 
   // Determinar los enlaces según el estado y rol del usuario
   const getNavLinks = () => {
     if (!user) {
-      // Usuario NO INICIÓ SESIÓN
       return ["Inicio", "Académico", "Contacto"];
     }
 
-    // 1) Los usuarios con rol alumno en estado pendiente o rechazado tienen el MISMO acceso que un usuario sin iniciar sesión (más ¿Sos docente? si desean solicitar cambio de rol)
     const isAlumnoSinAcceso =
       user.roleId === 3 &&
       (user.estadoCuentaId === 1 || user.estadoCuentaId === 3 || user.estadoCuentaId === 4);
 
     if (user.roleId === 3) {
-      // 3) y 4) El elemento '¿Sos docente?' solo disponible para rol alumno
       if (isAlumnoSinAcceso) {
         return ["Inicio", "Académico", "Contacto", "¿Sos docente?"];
       }
@@ -40,20 +40,20 @@ export default function Navbar({ activeNav, onNavigate }: NavbarProps) {
     }
 
     if (user.roleId === 2) {
-      // Usuario DOCENTE (ya es docente, no muestra ¿Sos docente?)
       return ["Inicio", "Académico", "Eventos", "Material", "Contacto", "Nuevo"];
     }
 
     if (user.roleId === 1) {
-      // Usuario ADMIN
       return ["Inicio", "Académico", "Eventos", "Material", "Contacto", "Nuevo", "Administrar"];
     }
 
-    // Default seguro
     return ["Inicio", "Académico", "Contacto"];
   };
 
   const links = getNavLinks();
+
+  // Detectar ruta activa comparando la URL actual
+  const isActive = (page: string) => location.pathname === pageToPath(page);
 
   // Cerrar menú desplegable al hacer clic afuera
   useEffect(() => {
@@ -71,7 +71,7 @@ export default function Navbar({ activeNav, onNavigate }: NavbarProps) {
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between h-16">
         {/* Logo */}
         <button
-          onClick={() => handleNavigate("Inicio")}
+          onClick={() => navigate("/")}
           className="flex items-center gap-3 hover:opacity-90 transition-opacity text-left shrink-0"
         >
           <img src={logoProa} alt="Logo PRoA" className="h-10 w-10 object-contain" />
@@ -83,32 +83,38 @@ export default function Navbar({ activeNav, onNavigate }: NavbarProps) {
 
         {/* Nav desktop - alineado a la derecha */}
         <nav className="hidden md:flex items-center gap-5 lg:gap-7 ml-auto mr-4 lg:mr-6">
-          {links.map((link) => {
-            const isActive = activeNav === link;
-            return (
+          {bloqueado ? (
+            <div
+              className="text-xs font-semibold text-amber-300 bg-amber-950/40 px-3 py-1.5 rounded-full border border-amber-500/30 flex items-center gap-1.5 cursor-help"
+              title="Debés completar tu vinculación de rol o curso para habilitar la navegación."
+            >
+              <span>🔒</span> Selección obligatoria
+            </div>
+          ) : (
+            links.map((link) => (
               <button
                 key={link}
                 id={`nav-${link.toLowerCase()}`}
                 onClick={() => handleNavigate(link)}
                 className={`text-xs lg:text-sm font-semibold transition-all px-1 py-1 relative ${
-                  isActive ? "text-[#A3CEF1]" : "text-white/80 hover:text-white"
+                  isActive(link) ? "text-[#A3CEF1]" : "text-white/80 hover:text-white"
                 }`}
               >
                 {link}
-                {isActive && (
+                {isActive(link) && (
                   <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#A3CEF1] rounded-full"></span>
                 )}
               </button>
-            );
-          })}
+            ))
+          )}
         </nav>
 
         {/* Acciones derecha desktop */}
         <div className="hidden md:flex items-center gap-3">
-          {/* Caja de notificaciones para Docente (2) y Admin (1) */}
+          {/* Notificaciones para Docente (2) y Admin (1) */}
           {user && (user.roleId === 1 || user.roleId === 2) && <NotificacionesBox />}
 
-          {/* Autenticación / Perfil de usuario */}
+          {/* Autenticación / Perfil */}
           {user ? (
             <div className="relative" ref={dropdownRef}>
               <button
@@ -134,9 +140,7 @@ export default function Navbar({ activeNav, onNavigate }: NavbarProps) {
                   </span>
                 </div>
                 <svg
-                  className={`w-3.5 h-3.5 text-[#A3CEF1] transition-transform ${
-                    userDropdownOpen ? "rotate-180" : ""
-                  }`}
+                  className={`w-3.5 h-3.5 text-[#A3CEF1] transition-transform ${userDropdownOpen ? "rotate-180" : ""}`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -159,10 +163,10 @@ export default function Navbar({ activeNav, onNavigate }: NavbarProps) {
                     </div>
                   </div>
 
-                  {user.roleId === 3 && (
+                  {user.roleId === 3 && !bloqueado && (
                     <button
                       onClick={() => {
-                        onNavigate("¿Sos docente?");
+                        navigate("/sos-docente");
                         setUserDropdownOpen(false);
                       }}
                       className="w-full text-left px-4 py-2 text-xs text-[#274C77] hover:bg-[#A3CEF1]/20 flex items-center gap-2 transition-colors font-semibold border-b border-[#8B8C89]/20"
@@ -176,6 +180,7 @@ export default function Navbar({ activeNav, onNavigate }: NavbarProps) {
                     onClick={() => {
                       logout();
                       setUserDropdownOpen(false);
+                      navigate("/");
                     }}
                     className="w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors font-semibold"
                   >
@@ -254,6 +259,7 @@ export default function Navbar({ activeNav, onNavigate }: NavbarProps) {
                 onClick={() => {
                   logout();
                   setMenuOpen(false);
+                  navigate("/");
                 }}
                 className="text-xs text-red-300 hover:text-red-100 bg-red-950/40 px-2.5 py-1 rounded border border-red-800/40"
               >
@@ -280,17 +286,23 @@ export default function Navbar({ activeNav, onNavigate }: NavbarProps) {
             </button>
           )}
 
-          {links.map((link) => (
-            <button
-              key={link}
-              onClick={() => handleNavigate(link)}
-              className={`text-left text-xs font-semibold py-1.5 transition-colors ${
-                activeNav === link ? "text-white font-bold bg-white/10 px-2 rounded" : "text-[#A3CEF1] hover:text-white"
-              }`}
-            >
-              {link}
-            </button>
-          ))}
+          {bloqueado ? (
+            <div className="text-left text-xs font-semibold py-2 text-amber-300 bg-amber-950/20 px-3 rounded border border-amber-500/20 flex items-center gap-2">
+              <span>🔒</span> Completá la selección de curso o rol para navegar
+            </div>
+          ) : (
+            links.map((link) => (
+              <button
+                key={link}
+                onClick={() => handleNavigate(link)}
+                className={`text-left text-xs font-semibold py-1.5 transition-colors ${
+                  isActive(link) ? "text-white font-bold bg-white/10 px-2 rounded" : "text-[#A3CEF1] hover:text-white"
+                }`}
+              >
+                {link}
+              </button>
+            ))
+          )}
         </div>
       )}
     </header>

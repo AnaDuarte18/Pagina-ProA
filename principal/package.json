@@ -12,7 +12,8 @@
   "dependencies": {
     "lightningcss-linux-x64-gnu": "^1.33.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.18.4"
   },
   "devDependencies": {
     "@rolldown/binding-linux-x64-gnu": "^1.2.9",
