@@ -34,9 +34,7 @@ CREATE TABLE Cuenta (
 
     correo VARCHAR(255) NOT NULL UNIQUE,
 
-    proveedorOAuth VARCHAR(50) NOT NULL,
-
-    oauthID VARCHAR(255) NOT NULL,
+    passwordHash VARCHAR(255) NOT NULL,
 
     rolID INT NOT NULL,
 
@@ -44,16 +42,17 @@ CREATE TABLE Cuenta (
 
     solicitudDocente TINYINT(1) NOT NULL DEFAULT 0,
 
+    tokenResetPassword VARCHAR(255) NULL,
+
+    tokenResetExpira DATETIME NULL,
+
     CONSTRAINT FK_Cuenta_Rol
         FOREIGN KEY (rolID)
         REFERENCES Rol(ID),
 
     CONSTRAINT FK_Cuenta_EstadoCuenta
         FOREIGN KEY (estadoCuentaID)
-        REFERENCES EstadoCuenta(ID),
-
-    CONSTRAINT UQ_Cuenta_OAuth
-        UNIQUE (proveedorOAuth, oauthID)
+        REFERENCES EstadoCuenta(ID)
 );
 
 

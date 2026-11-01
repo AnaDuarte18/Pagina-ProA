@@ -26,14 +26,19 @@ export async function fetchCursos(token?: string | null): Promise<Curso[]> {
  */
 export async function asignarCursoAlumno(
   cursoID: number,
-  token?: string | null
+  token?: string | null,
+  cuentaId?: number | string | null
 ): Promise<{ success: boolean; message: string }> {
   try {
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (token) headers["Authorization"] = `Bearer ${token}`;
 
     const anioInicio = new Date().getFullYear();
-    const res = await fetch(`${API_BASE_URL}/alumno/curso`, {
+    const endpoint = cuentaId
+      ? `${API_BASE_URL}/cuentas/${cuentaId}/curso`
+      : `${API_BASE_URL}/alumno/curso`;
+
+    const res = await fetch(endpoint, {
       method: "POST",
       headers,
       body: JSON.stringify({ cursoID, anioInicio }),

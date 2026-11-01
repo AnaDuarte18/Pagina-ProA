@@ -1,58 +1,27 @@
-const { google } = require('googleapis');
+const bcrypt = require('bcrypt');
 
-function getOAuthClient() {
-  return new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT || 'http://localhost:3000/oauth2callback'
-  );
-}
-
-const defaultScopes = [
-  'https://www.googleapis.com/auth/userinfo.profile',
-  'https://www.googleapis.com/auth/userinfo.email',
-];
+const SALT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS || '12', 10);
 
 /**
- * Genera la URL de autorización para iniciar sesión con Google
+ * Genera el hash bcrypt de una contraseña en texto plano.
+ * @param {string} plainPassword
+ * @returns {Promise<string>} Hash bcrypt listo para almacenar en la BD
  */
-function getConnectionUrl() {
-  const client = getOAuthClient();
-  return client.generateAuthUrl({
-    access_type: 'offline',
-    prompt: 'consent',
-    scope: defaultScopes,
-  });
+async function hashPassword(plainPassword) {
+  return bcrypt.hash(plainPassword, SALT_ROUNDS);
 }
 
 /**
- * Intercambia el código de autorización devuelto por Google por los tokens y obtiene el perfil del usuario
+ * Verifica si una contraseña en texto plano coincide con el hash almacenado.
+ * @param {string} plainPassword
+ * @param {string} hash
+ * @returns {Promise<boolean>}
  */
-async function getUserDetails(code) {
-  const client = getOAuthClient();
-  const { tokens } = await client.getToken(code);
-  client.setCredentials(tokens);
-
-  const oauth2 = google.oauth2({ version: 'v2', auth: client });
-  const userInfo = await oauth2.userinfo.get();
-  return userInfo.data;
-}
-
-/**
- * Verifica un ID Token (JWT) enviado desde el frontend (Google Identity Services)
- */
-async function verifyIdToken(idToken) {
-  const client = getOAuthClient();
-  const ticket = await client.verifyIdToken({
-    idToken,
-    audience: process.env.GOOGLE_CLIENT_ID,
-  });
-  return ticket.getPayload();
+async function verifyPassword(plainPassword, hash) {
+  return bcrypt.compare(plainPassword, hash);
 }
 
 module.exports = {
-  getOAuthClient,
-  getConnectionUrl,
-  getUserDetails,
-  verifyIdToken,
+  hashPassword,
+  verifyPassword,
 };

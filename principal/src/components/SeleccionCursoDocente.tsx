@@ -47,7 +47,7 @@ export default function SeleccionCursoDocente({ onCompletado }: SeleccionCursoDo
     setMensajeError(null);
     setMensajeExito(null);
 
-    const res = await asignarCursoAlumno(cursoSeleccionado, token);
+    const res = await asignarCursoAlumno(cursoSeleccionado, token, user?.id);
     setProcesando(false);
 
     if (res.success) {

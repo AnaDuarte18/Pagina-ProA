@@ -4,7 +4,7 @@ const mysql = require('mysql2/promise');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
-const { getConnectionUrl, getUserDetails, verifyIdToken } = require('./auth');
+const { hashPassword, verifyPassword } = require('./auth');
 
 const app = express();
 app.use(cors({
@@ -46,9 +46,6 @@ const ESTADOS_CUENTA = {
   SUSPENDIDO: 4,
 };
 
-// Dominio institucional — login automáticamente ACTIVO
-const DOMINIO_INSTITUCIONAL = '@escuelasproa.edu.ar';
-
 // Estados de contenido (Estado table): Pendiente(1), Devuelto(2), Publicado(3), Eliminado(4)
 const ESTADOS_CONTENIDO = {
   PENDIENTE: 1,
@@ -65,93 +62,12 @@ const TIPOS_NOTIFICACION = {
   NUEVA_PUBLICACION: 4,
 };
 
-// ─────────────────────────────────────────────────────────────
-// HELPERS
-// ─────────────────────────────────────────────────────────────
-
-/**
- * Determina el estado inicial de la cuenta según el dominio del correo.
- * @escuelasproa.edu.ar → ACTIVO automáticamente.
- * Correo externo       → PENDIENTE hasta aprobación del admin.
- */
-function calcularEstadoInicial(email) {
-  return email.toLowerCase().endsWith(DOMINIO_INSTITUCIONAL)
-    ? ESTADOS_CUENTA.ACTIVO
-    : ESTADOS_CUENTA.PENDIENTE;
-}
-
-/**
- * Busca o crea un usuario en la tabla `Cuenta` a partir de sus datos de Google.
- * Lógica de estado inicial:
- *   - @escuelasproa.edu.ar → ACTIVO
- *   - correo externo       → PENDIENTE (requiere aprobación del admin)
- */
-async function findOrCreateGoogleUser({ googleId, email, name, picture }) {
-  const nombreFinal = name || email.split('@')[0];
-  const estadoInicial = calcularEstadoInicial(email);
-
-  try {
-    // Buscar por oauthID (más confiable que el correo)
-    const [rows] = await pool.query(
-      `SELECT c.ID, c.NombreApellido, c.correo, c.proveedorOAuth, c.oauthID,
-              c.rolID, c.estadoCuentaID, c.solicitudDocente,
-              r.Nombre AS rolNombre
-       FROM Cuenta c
-       LEFT JOIN Rol r ON c.rolID = r.ID
-       WHERE c.proveedorOAuth = 'google' AND c.oauthID = ?`,
-      [googleId]
-    );
-
-    if (rows && rows.length > 0) {
-      const user = rows[0];
-      return {
-        id: user.ID,
-        name: user.NombreApellido,
-        email: user.correo,
-        roleId: user.rolID,
-        role: user.rolNombre || 'Alumno',
-        picture: picture || null,
-        estadoCuentaId: user.estadoCuentaID,
-        solicitudDocente: !!user.solicitudDocente,
-      };
-    }
-
-    // No existe → crear con estado según dominio del correo
-    const [insertResult] = await pool.query(
-      `INSERT INTO Cuenta (NombreApellido, correo, proveedorOAuth, oauthID, rolID, estadoCuentaID, solicitudDocente)
-       VALUES (?, ?, 'google', ?, ?, ?, 0)`,
-      [nombreFinal, email, googleId, ROLES.ALUMNO, estadoInicial]
-    );
-
-    console.log(
-      `[Auth] Nueva cuenta: ${email} | Estado: ${estadoInicial === ESTADOS_CUENTA.ACTIVO ? 'ACTIVO' : 'PENDIENTE'}`
-    );
-
-    return {
-      id: insertResult.insertId,
-      name: nombreFinal,
-      email,
-      roleId: ROLES.ALUMNO,
-      role: 'Alumno',
-      picture: picture || null,
-      estadoCuentaId: estadoInicial,
-      solicitudDocente: false,
-    };
-  } catch (error) {
-    console.warn('[Auth] BD no disponible (fallback):', error.message);
-    // Fallback: aplicar la misma lógica de dominio para no bloquear el login
-    return {
-      id: googleId,
-      name: nombreFinal,
-      email,
-      roleId: ROLES.ALUMNO,
-      role: 'Alumno',
-      picture: picture || null,
-      estadoCuentaId: estadoInicial,
-      solicitudDocente: false,
-    };
-  }
-}
+// Estados de empresa (estadoEmpresa table): Activa(1), Inactiva(2), Dada de baja(3)
+const ESTADOS_EMPRESA = {
+  ACTIVA: 1,
+  INACTIVA: 2,
+  DADA_DE_BAJA: 3,
+};
 
 // ─────────────────────────────────────────────────────────────
 // MIDDLEWARES DE AUTENTICACIÓN Y AUTORIZACIÓN
@@ -217,79 +133,128 @@ function requireRole(...rolesPermitidos) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// RUTAS DE AUTENTICACIÓN GOOGLE
+// RUTAS DE AUTENTICACIÓN LOCAL (usuario/contraseña + bcrypt)
 // ─────────────────────────────────────────────────────────────
 
 /**
- * 1. Redirige al consentimiento de Google OAuth
- *    o responde { url } si se pide por JSON
+ * POST /api/auth/register
+ * Registro de nueva cuenta con nombre, correo y contraseña.
+ * La cuenta siempre queda en estado PENDIENTE hasta que el admin la apruebe.
+ * Body: { nombre, correo, password }
  */
-app.get('/auth/google', (req, res) => {
+app.post('/api/auth/register', async (req, res) => {
+  const { nombre, correo, password } = req.body;
+
+  if (!nombre || !correo || !password) {
+    return res.status(400).json({ error: 'nombre, correo y password son requeridos.' });
+  }
+
+  if (password.length < 8) {
+    return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres.' });
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(correo)) {
+    return res.status(400).json({ error: 'El formato del correo electrónico no es válido.' });
+  }
+
   try {
-    const url = getConnectionUrl();
-    if (req.query.json === 'true') {
-      return res.json({ url });
+    // Verificar si el correo ya está registrado
+    const [existing] = await pool.query(
+      'SELECT ID FROM Cuenta WHERE correo = ?',
+      [correo.toLowerCase().trim()]
+    );
+    if (existing && existing.length > 0) {
+      return res.status(409).json({ error: 'Ya existe una cuenta registrada con ese correo.' });
     }
-    res.redirect(url);
-  } catch (error) {
-    console.error('[Auth] Error generando URL de OAuth:', error);
-    res.status(500).json({ error: 'No se pudo iniciar el flujo de Google OAuth.' });
-  }
-});
 
-/**
- * 2. Callback de Google OAuth (cuando Google redirige al backend)
- */
-app.get('/oauth2callback', async (req, res) => {
-  const { code, error } = req.query;
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const passwordHash = await hashPassword(password);
 
-  if (error) {
-    console.error('[Auth] Error reportado por Google OAuth:', error);
-    return res.redirect(`${frontendUrl}/?login_error=${encodeURIComponent(error)}`);
-  }
+    const [result] = await pool.query(
+      `INSERT INTO Cuenta (NombreApellido, correo, passwordHash, rolID, estadoCuentaID, solicitudDocente, proveedorOAuth, oauthID)
+       VALUES (?, ?, ?, ?, ?, 0, NULL, NULL)`,
+      [nombre.trim(), correo.toLowerCase().trim(), passwordHash, ROLES.ALUMNO, ESTADOS_CUENTA.PENDIENTE]
+    );
 
-  if (!code) {
-    return res.redirect(`${frontendUrl}/?login_error=missing_code`);
-  }
+    console.log(`[Auth] Nueva cuenta registrada: ${correo} | Estado: PENDIENTE`);
 
-  try {
-    const userInfo = await getUserDetails(code);
-    const user = await findOrCreateGoogleUser({
-      googleId: userInfo.id,
-      email: userInfo.email,
-      name: userInfo.name,
-      picture: userInfo.picture,
-    });
+    const user = {
+      id: result.insertId,
+      name: nombre.trim(),
+      email: correo.toLowerCase().trim(),
+      roleId: ROLES.ALUMNO,
+      role: 'Alumno',
+      estadoCuentaId: ESTADOS_CUENTA.PENDIENTE,
+      solicitudDocente: false,
+    };
 
     const token = jwt.sign({ user }, JWT_SECRET, { expiresIn: '7d' });
-    const userJson = encodeURIComponent(JSON.stringify(user));
 
-    return res.redirect(`${frontendUrl}/?login_success=true&token=${token}&user=${userJson}`);
+    res.status(201).json({
+      success: true,
+      message: 'Cuenta creada correctamente. Tu cuenta está pendiente de aprobación por el administrador.',
+      token,
+      user,
+    });
   } catch (err) {
-    console.error('[Auth] Error en /oauth2callback:', err);
-    return res.redirect(`${frontendUrl}/?login_error=auth_failed`);
+    console.error('[Auth] Error en POST /api/auth/register:', err);
+    res.status(500).json({ error: 'Error al registrar la cuenta.' });
   }
 });
 
 /**
- * 3. Endpoint para Google Identity Services (GIS)
- *    El frontend obtiene el ID Token directo de Google y lo envía aquí para verificarlo
+ * POST /api/auth/login
+ * Inicio de sesión con correo y contraseña.
+ * Body: { correo, password }
  */
-app.post('/api/auth/google', async (req, res) => {
-  const { credential } = req.body;
-  if (!credential) {
-    return res.status(400).json({ error: 'Credencial de Google no recibida.' });
+app.post('/api/auth/login', async (req, res) => {
+  const { correo, password } = req.body;
+
+  if (!correo || !password) {
+    return res.status(400).json({ error: 'correo y password son requeridos.' });
   }
 
   try {
-    const payload = await verifyIdToken(credential);
-    const user = await findOrCreateGoogleUser({
-      googleId: payload.sub,
-      email: payload.email,
-      name: payload.name,
-      picture: payload.picture,
-    });
+    const [rows] = await pool.query(
+      `SELECT c.ID, c.NombreApellido, c.correo, c.passwordHash,
+              c.rolID, c.estadoCuentaID, c.solicitudDocente,
+              r.Nombre AS rolNombre
+       FROM Cuenta c
+       LEFT JOIN Rol r ON c.rolID = r.ID
+       WHERE c.correo = ?`,
+      [correo.toLowerCase().trim()]
+    );
+
+    if (!rows || rows.length === 0) {
+      return res.status(401).json({ error: 'Correo o contraseña incorrectos.' });
+    }
+
+    const cuenta = rows[0];
+
+    // Verificar que la cuenta no esté rechazada o suspendida antes de verificar la contraseña
+    // (no revelar si la cuenta existe o no en esos casos)
+    if (cuenta.estadoCuentaID === ESTADOS_CUENTA.RECHAZADO) {
+      return res.status(403).json({ error: 'Tu cuenta ha sido rechazada. Contactá a la administración.' });
+    }
+
+    if (cuenta.estadoCuentaID === ESTADOS_CUENTA.SUSPENDIDO) {
+      return res.status(403).json({ error: 'Tu cuenta está suspendida. Contactá a la administración.' });
+    }
+
+    const passwordOk = await verifyPassword(password, cuenta.passwordHash);
+    if (!passwordOk) {
+      return res.status(401).json({ error: 'Correo o contraseña incorrectos.' });
+    }
+
+    const user = {
+      id: cuenta.ID,
+      name: cuenta.NombreApellido,
+      email: cuenta.correo,
+      roleId: cuenta.rolID,
+      role: cuenta.rolNombre || 'Alumno',
+      estadoCuentaId: cuenta.estadoCuentaID,
+      solicitudDocente: !!cuenta.solicitudDocente,
+    };
 
     const token = jwt.sign({ user }, JWT_SECRET, { expiresIn: '7d' });
 
@@ -298,14 +263,15 @@ app.post('/api/auth/google', async (req, res) => {
       token,
       user,
     });
-  } catch (error) {
-    console.error('[Auth] Error verificando token en /api/auth/google:', error);
-    res.status(401).json({ error: 'Credencial de Google inválida o expirada.' });
+  } catch (err) {
+    console.error('[Auth] Error en POST /api/auth/login:', err);
+    res.status(500).json({ error: 'Error al iniciar sesión.' });
   }
 });
 
 /**
- * 4. Devuelve datos frescos del usuario actual desde la BD (no solo el JWT)
+ * GET /api/auth/me
+ * Devuelve datos frescos del usuario actual desde la BD (no solo el JWT).
  */
 app.get('/api/auth/me', requireAuth, async (req, res) => {
   try {
@@ -372,7 +338,7 @@ app.get('/cuentas', requireAuth, requireRole(ROLES.ADMINISTRADOR), async (req, r
               c.estadoCuentaID, ec.estado AS estadoCuenta, c.solicitudDocente
        FROM Cuenta c
        LEFT JOIN Rol r ON c.rolID = r.ID
-       LEFT JOIN estadoCuenta ec ON c.estadoCuentaID = ec.ID
+       LEFT JOIN EstadoCuenta ec ON c.estadoCuentaID = ec.ID
        ${whereClause}
        ORDER BY c.ID DESC`,
       params
@@ -396,7 +362,7 @@ app.get('/cuentas/:id', requireAuth, requireRole(ROLES.ADMINISTRADOR), async (re
               c.estadoCuentaID, ec.estado AS estadoCuenta, c.solicitudDocente
        FROM Cuenta c
        LEFT JOIN Rol r ON c.rolID = r.ID
-       LEFT JOIN estadoCuenta ec ON c.estadoCuentaID = ec.ID
+       LEFT JOIN EstadoCuenta ec ON c.estadoCuentaID = ec.ID
        WHERE c.ID = ?`,
       [req.params.id]
     );
@@ -441,7 +407,7 @@ app.patch('/cuentas/:id/estado', requireAuth, requireRole(ROLES.ADMINISTRADOR), 
                 r.Nombre AS rolNombre, ec.estado AS estadoNombre
          FROM Cuenta c
          LEFT JOIN Rol r ON c.rolID = r.ID
-         LEFT JOIN estadoCuenta ec ON c.estadoCuentaID = ec.ID
+         LEFT JOIN EstadoCuenta ec ON c.estadoCuentaID = ec.ID
          WHERE c.ID = ?`,
         [req.params.id]
       );
@@ -475,7 +441,7 @@ app.patch('/cuentas/:id/estado', requireAuth, requireRole(ROLES.ADMINISTRADOR), 
 
       // Registrar historial de estado
       const [[nuevoEstado]] = await conn.query(
-        'SELECT estado FROM estadoCuenta WHERE ID = ?', [estadoCuentaID]
+        'SELECT estado FROM EstadoCuenta WHERE ID = ?', [estadoCuentaID]
       );
       await registrarHistorialCuenta(conn, {
         cuentaID: parseInt(req.params.id),
@@ -581,9 +547,121 @@ app.patch('/cuentas/:id/rol', requireAuth, requireRole(ROLES.ADMINISTRADOR), asy
 });
 
 /**
+ * POST /cuentas/batch/estado
+ * Solo Admin. Cambia el estado (y opcionalmente el rol) de múltiples cuentas a la vez.
+ * Body: { ids: number[], estadoCuentaID: number, rolID?: number }
+ */
+app.post('/cuentas/batch/estado', requireAuth, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
+  const { ids, estadoCuentaID, rolID } = req.body;
+
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ error: 'ids debe ser un array con al menos un elemento.' });
+  }
+
+  if (!estadoCuentaID) {
+    return res.status(400).json({ error: 'estadoCuentaID es requerido.' });
+  }
+
+  const estadosValidos = Object.values(ESTADOS_CUENTA);
+  if (!estadosValidos.includes(parseInt(estadoCuentaID))) {
+    return res.status(400).json({ error: `estadoCuentaID inválido.` });
+  }
+
+  if (rolID !== undefined) {
+    const rolesValidos = Object.values(ROLES);
+    if (!rolesValidos.includes(parseInt(rolID))) {
+      return res.status(400).json({ error: `rolID inválido.` });
+    }
+  }
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const [[nuevoEstadoObj]] = await conn.query('SELECT estado FROM EstadoCuenta WHERE ID = ?', [estadoCuentaID]);
+    let nuevoRolObj = null;
+    if (rolID !== undefined) {
+      [[nuevoRolObj]] = await conn.query('SELECT Nombre FROM Rol WHERE ID = ?', [rolID]);
+    }
+
+    let procesadas = 0;
+    const errores = [];
+
+    for (const id of ids) {
+      try {
+        const [[cuenta]] = await conn.query(
+          `SELECT c.rolID, c.estadoCuentaID, r.Nombre AS rolNombre, ec.estado AS estadoNombre
+           FROM Cuenta c
+           LEFT JOIN Rol r ON c.rolID = r.ID
+           LEFT JOIN EstadoCuenta ec ON c.estadoCuentaID = ec.ID
+           WHERE c.ID = ?`,
+          [id]
+        );
+
+        if (!cuenta) {
+          errores.push(`ID ${id}: cuenta no encontrada.`);
+          continue;
+        }
+
+        const campos = ['estadoCuentaID = ?'];
+        const params = [parseInt(estadoCuentaID)];
+
+        if (rolID !== undefined) {
+          campos.push('rolID = ?');
+          params.push(parseInt(rolID));
+        }
+
+        if (parseInt(estadoCuentaID) === ESTADOS_CUENTA.ACTIVO && rolID !== undefined && parseInt(rolID) === ROLES.DOCENTE) {
+          campos.push('solicitudDocente = 0');
+        }
+
+        params.push(id);
+        await conn.query(`UPDATE Cuenta SET ${campos.join(', ')} WHERE ID = ?`, params);
+
+        await registrarHistorialCuenta(conn, {
+          cuentaID: id,
+          realizadoPorID: req.userJwt.id,
+          campo: 'estado',
+          valorAnterior: cuenta.estadoNombre,
+          valorNuevo: nuevoEstadoObj?.estado ?? String(estadoCuentaID),
+        });
+
+        if (rolID !== undefined && parseInt(rolID) !== cuenta.rolID) {
+          await registrarHistorialCuenta(conn, {
+            cuentaID: id,
+            realizadoPorID: req.userJwt.id,
+            campo: 'rol',
+            valorAnterior: cuenta.rolNombre,
+            valorNuevo: nuevoRolObj?.Nombre ?? String(rolID),
+          });
+        }
+
+        procesadas++;
+      } catch (e) {
+        errores.push(`ID ${id}: ${e.message}`);
+      }
+    }
+
+    await conn.commit();
+    res.json({
+      message: `${procesadas} cuenta(s) actualizadas correctamente.`,
+      procesadas,
+      errores: errores.length > 0 ? errores : undefined,
+    });
+  } catch (err) {
+    await conn.rollback();
+    console.error('[Cuentas] Error en POST /cuentas/batch/estado:', err);
+    res.status(500).json({ error: err.message });
+  } finally {
+    conn.release();
+  }
+});
+
+/**
  * POST /cuentas/:id/solicitar-docente
- * Usuario autenticado y activo. Solicita cambio de rol a Docente.
+ * Usuario autenticado. Solicita cambio de rol a Docente.
  * Solo el propio usuario puede solicitarlo.
+ * Funciona incluso con cuenta en estado PENDIENTE (no bloquea por estado).
  */
 app.post('/cuentas/:id/solicitar-docente', requireAuth, async (req, res) => {
   const cuentaId = parseInt(req.params.id);
@@ -604,8 +682,9 @@ app.post('/cuentas/:id/solicitar-docente', requireAuth, async (req, res) => {
 
     const cuenta = rows[0];
 
-    if (cuenta.estadoCuentaID !== ESTADOS_CUENTA.ACTIVO) {
-      return res.status(403).json({ error: 'Tu cuenta debe estar activa para solicitar cambio de rol.' });
+    // Solo bloquear si está rechazada o suspendida
+    if (cuenta.estadoCuentaID === ESTADOS_CUENTA.RECHAZADO || cuenta.estadoCuentaID === ESTADOS_CUENTA.SUSPENDIDO) {
+      return res.status(403).json({ error: 'Tu cuenta está rechazada o suspendida.' });
     }
 
     if (cuenta.rolID === ROLES.DOCENTE) {
@@ -631,14 +710,6 @@ app.post('/cuentas/:id/solicitar-docente', requireAuth, async (req, res) => {
 
 /**
  * Registra un movimiento en HistorialCuenta.
- * @param {object} conn   - Conexión del pool (para usar dentro de transacciones)
- * @param {object} params
- *   cuentaID       — ID de la cuenta afectada
- *   realizadoPorID — ID del admin/usuario que hizo el cambio
- *   campo          — 'rol' | 'estado' | 'curso'
- *   valorAnterior  — valor legible antes del cambio
- *   valorNuevo     — valor legible después del cambio
- *   comentario     — opcional
  */
 async function registrarHistorialCuenta(conn, { cuentaID, realizadoPorID, campo, valorAnterior, valorNuevo, comentario = null }) {
   await conn.query(
@@ -707,15 +778,14 @@ app.get('/cuentas/:id/curso', requireAuth, async (req, res) => {
 
 /**
  * POST /cuentas/:id/curso
- * El propio usuario (Alumno activo) selecciona su curso al iniciar sesión.
+ * El propio usuario (Alumno) selecciona su curso.
+ * Funciona incluso con cuenta en estado PENDIENTE.
  * Body: { cursoID: number, anioInicio: number }
- * anioInicio = año en que ingresó a la escuela (no el año actual del calendario).
- * Solo se puede hacer si no tiene curso asignado aún.
  */
-app.post('/cuentas/:id/curso', requireAuth, async (req, res) => {
-  const cuentaId = parseInt(req.params.id);
+async function asignarCursoHandler(req, res) {
+  const cuentaId = req.params.id ? parseInt(req.params.id) : req.userJwt?.id;
 
-  if (req.userJwt.id !== cuentaId) {
+  if (!cuentaId || req.userJwt.id !== cuentaId) {
     return res.status(403).json({ error: 'Solo podés asignar tu propio curso.' });
   }
 
@@ -729,7 +799,7 @@ app.post('/cuentas/:id/curso', requireAuth, async (req, res) => {
   try {
     await conn.beginTransaction();
 
-    // Verificar cuenta activa con rol Alumno
+    // Verificar cuenta existe y no está rechazada/suspendida
     const [[cuenta]] = await conn.query(
       'SELECT ID, estadoCuentaID, rolID FROM Cuenta WHERE ID = ?',
       [cuentaId]
@@ -738,9 +808,9 @@ app.post('/cuentas/:id/curso', requireAuth, async (req, res) => {
       await conn.rollback();
       return res.status(404).json({ error: 'Cuenta no encontrada.' });
     }
-    if (cuenta.estadoCuentaID !== ESTADOS_CUENTA.ACTIVO) {
+    if (cuenta.estadoCuentaID === ESTADOS_CUENTA.RECHAZADO || cuenta.estadoCuentaID === ESTADOS_CUENTA.SUSPENDIDO) {
       await conn.rollback();
-      return res.status(403).json({ error: 'La cuenta debe estar activa.' });
+      return res.status(403).json({ error: 'La cuenta está rechazada o suspendida.' });
     }
     if (cuenta.rolID !== ROLES.ALUMNO) {
       await conn.rollback();
@@ -801,17 +871,19 @@ app.post('/cuentas/:id/curso', requireAuth, async (req, res) => {
     res.status(201).json({ message: 'Curso asignado correctamente.' });
   } catch (err) {
     await conn.rollback();
-    console.error('[Cursos] Error en POST /cuentas/:id/curso:', err);
+    console.error('[Cursos] Error en POST /cuentas/:id/curso o /alumno/curso:', err);
     res.status(500).json({ error: err.message });
   } finally {
     conn.release();
   }
-});
+}
+
+app.post('/cuentas/:id/curso', requireAuth, asignarCursoHandler);
+app.post('/alumno/curso', requireAuth, asignarCursoHandler);
 
 /**
  * PATCH /cuentas/:id/curso
  * Solo Admin. Cambia el curso actual del alumno.
- * Cierra el registro anterior (fechaHasta = hoy) y abre uno nuevo con el mismo anioInicio.
  * Body: { cursoID: number, comentario?: string }
  */
 app.patch('/cuentas/:id/curso', requireAuth, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
@@ -857,13 +929,11 @@ app.patch('/cuentas/:id/curso', requireAuth, requireRole(ROLES.ADMINISTRADOR), a
 
     const hoy = new Date().toISOString().slice(0, 10);
 
-    // El anioInicio se conserva del registro anterior (o si no tenía, usar el año actual)
     const anioInicio = cursoActual ? cursoActual.anioInicio : new Date().getFullYear();
     const valorAnterior = cursoActual
       ? `${cursoActual.anio}° ${cursoActual.division}`
       : null;
 
-    // Cerrar el registro anterior si existe
     if (cursoActual) {
       await conn.query(
         'UPDATE AlumnoCurso SET fechaHasta = ? WHERE ID = ?',
@@ -871,7 +941,6 @@ app.patch('/cuentas/:id/curso', requireAuth, requireRole(ROLES.ADMINISTRADOR), a
       );
     }
 
-    // Crear el nuevo registro con el mismo anioInicio
     await conn.query(
       `INSERT INTO AlumnoCurso (AlumnoID, CursoID, anioInicio, fechaDesde, fechaHasta)
        VALUES (?, ?, ?, ?, NULL)`,
@@ -934,7 +1003,6 @@ app.get('/cuentas/:id/historial', requireAuth, requireRole(ROLES.ADMINISTRADOR),
 
 /**
  * Registra un cambio de estado en la tabla Historial.
- * Solo uno de novedadID/eventoID/materialID debe tener valor.
  */
 async function registrarHistorialContenido(conn, {
   novedadID = null, eventoID = null, materialID = null,
@@ -967,7 +1035,6 @@ function estadoInicialContenido(rolID) {
 
 // ─────────────────────────────────────────────────────────────
 // NOVEDADES
-// Visibles públicamente (sin login). Solo se muestran las Publicadas al público.
 // ─────────────────────────────────────────────────────────────
 
 /**
@@ -977,7 +1044,6 @@ function estadoInicialContenido(rolID) {
  */
 app.get('/novedades', async (req, res) => {
   try {
-    // Intentar leer JWT si viene (no es obligatorio)
     let cuentaActual = null;
     const authHeader = req.headers.authorization;
     if (authHeader?.startsWith('Bearer ')) {
@@ -990,7 +1056,6 @@ app.get('/novedades', async (req, res) => {
     let whereClause = 'n.estadoID = ?';
     const params = [ESTADOS_CONTENIDO.PUBLICADO];
 
-    // Admin ve todo. Docente ve las propias + publicadas.
     if (cuentaActual?.roleId === ROLES.ADMINISTRADOR) {
       whereClause = 'n.estadoID != ?';
       params[0] = ESTADOS_CONTENIDO.ELIMINADO;
@@ -1053,7 +1118,6 @@ app.post('/novedades', requireAuth, requireRole(ROLES.ADMINISTRADOR, ROLES.DOCEN
     });
 
     if (estadoID === ESTADOS_CONTENIDO.PENDIENTE) {
-      // Notificar a los admins que hay una novedad pendiente de revisión
       const [admins] = await conn.query(
         'SELECT ID FROM Cuenta WHERE rolID = ? AND estadoCuentaID = ?',
         [ROLES.ADMINISTRADOR, ESTADOS_CUENTA.ACTIVO]
@@ -1081,7 +1145,6 @@ app.post('/novedades', requireAuth, requireRole(ROLES.ADMINISTRADOR, ROLES.DOCEN
 
 /**
  * GET /novedades/:id
- * Público. Cualquiera puede ver las Publicadas. Auth requerida para ver las propias Pendientes/Devueltas.
  */
 app.get('/novedades/:id', async (req, res) => {
   try {
@@ -1100,7 +1163,6 @@ app.get('/novedades/:id', async (req, res) => {
 
     if (!row) return res.status(404).json({ error: 'Novedad no encontrada.' });
 
-    // Si no está publicada, solo el creador o el admin pueden verla
     if (row.estadoID !== ESTADOS_CONTENIDO.PUBLICADO) {
       const authHeader = req.headers.authorization;
       if (!authHeader?.startsWith('Bearer ')) return res.status(403).json({ error: 'Acceso no autorizado.' });
@@ -1123,7 +1185,6 @@ app.get('/novedades/:id', async (req, res) => {
 /**
  * PATCH /novedades/:id
  * Admin edita cualquier novedad. Docente edita solo la propia (si está Pendiente o Devuelta).
- * Body: { titulo?, cuerpo?, imagen?, asignaturaID? }
  */
 app.patch('/novedades/:id', requireAuth, requireRole(ROLES.ADMINISTRADOR, ROLES.DOCENTE), async (req, res) => {
   const { titulo, cuerpo, imagen, asignaturaID } = req.body;
@@ -1135,7 +1196,6 @@ app.patch('/novedades/:id', requireAuth, requireRole(ROLES.ADMINISTRADOR, ROLES.
     );
     if (!novedad) return res.status(404).json({ error: 'Novedad no encontrada.' });
 
-    // Docente solo puede editar la propia y solo si está Pendiente o Devuelta
     if (req.cuenta.rolID === ROLES.DOCENTE) {
       if (novedad.cuentaID !== req.userJwt.id) return res.status(403).json({ error: 'Solo podés editar tus propias novedades.' });
       if (![ESTADOS_CONTENIDO.PENDIENTE, ESTADOS_CONTENIDO.DEVUELTO].includes(novedad.estadoID)) {
@@ -1150,7 +1210,6 @@ app.patch('/novedades/:id', requireAuth, requireRole(ROLES.ADMINISTRADOR, ROLES.
     if (imagen !== undefined) { campos.push('imagen = ?'); params.push(imagen); }
     if (asignaturaID !== undefined) { campos.push('asignaturaID = ?'); params.push(asignaturaID); }
 
-    // Si el docente edita una devuelta, vuelve a Pendiente
     if (req.cuenta.rolID === ROLES.DOCENTE && novedad.estadoID === ESTADOS_CONTENIDO.DEVUELTO) {
       campos.push('estadoID = ?', 'comentarioAdmin = NULL');
       params.push(ESTADOS_CONTENIDO.PENDIENTE);
@@ -1169,9 +1228,7 @@ app.patch('/novedades/:id', requireAuth, requireRole(ROLES.ADMINISTRADOR, ROLES.
 
 /**
  * PATCH /novedades/:id/estado
- * Solo Admin. Cambia el estado (Aprobado, Devuelto, Rechazado).
- * Body: { estadoID, comentario? }
- * Genera historial y notificación al creador.
+ * Solo Admin. Cambia el estado de una novedad.
  */
 app.patch('/novedades/:id/estado', requireAuth, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
   const { estadoID, comentario } = req.body;
@@ -1203,7 +1260,6 @@ app.patch('/novedades/:id/estado', requireAuth, requireRole(ROLES.ADMINISTRADOR)
       comentario: comentario || null,
     });
 
-    // Notificar al creador
     const tipoMap = {
       [ESTADOS_CONTENIDO.PUBLICADO]: { tipo: TIPOS_NOTIFICACION.APROBACION, titulo: 'Tu novedad fue aprobada', msg: `"${novedad.titulo}" fue publicada.` },
       [ESTADOS_CONTENIDO.DEVUELTO]:  { tipo: TIPOS_NOTIFICACION.DEVOLUCION, titulo: 'Tu novedad fue devuelta', msg: `"${novedad.titulo}" requiere correcciones. ${comentario || ''}` },
@@ -1269,19 +1325,16 @@ app.delete('/novedades/:id', requireAuth, requireRole(ROLES.ADMINISTRADOR), asyn
 
 // ─────────────────────────────────────────────────────────────
 // EVENTOS
-// Requieren auth. Alumnos ven solo los de sus cursos. Docentes y Admin ven todos los Publicados.
 // ─────────────────────────────────────────────────────────────
 
 /**
  * GET /eventos
- * Auth requerida. Alumnos: solo eventos de sus cursos. Docentes/Admin: todos los Publicados (+ propios si Docente).
  */
 app.get('/eventos', requireAuth, async (req, res) => {
   try {
     const cuenta = req.userJwt;
 
     if (cuenta.roleId === ROLES.ADMINISTRADOR) {
-      // Admin ve todos excepto eliminados
       const [rows] = await pool.query(
         `SELECT e.ID, e.titulo, e.cuerpo, e.cuentaID, c.NombreApellido AS autorNombre,
                 e.fecha_publicacion, e.asignaturaID, a.Nombre AS asignaturaNombre,
@@ -1301,7 +1354,6 @@ app.get('/eventos', requireAuth, async (req, res) => {
     }
 
     if (cuenta.roleId === ROLES.DOCENTE) {
-      // Docente ve publicados + los propios en cualquier estado
       const [rows] = await pool.query(
         `SELECT e.ID, e.titulo, e.cuerpo, e.cuentaID, c.NombreApellido AS autorNombre,
                 e.fecha_publicacion, e.asignaturaID, a.Nombre AS asignaturaNombre,
@@ -1324,12 +1376,12 @@ app.get('/eventos', requireAuth, async (req, res) => {
     const [[alumno]] = await pool.query(
       'SELECT a.ID FROM Alumno a WHERE a.cuentaID = ?', [cuenta.id]
     );
-    if (!alumno) return res.json([]); // Sin perfil de alumno = sin eventos
+    if (!alumno) return res.json([]);
 
     const [[cursoActual]] = await pool.query(
       'SELECT CursoID FROM AlumnoCurso WHERE AlumnoID = ? AND fechaHasta IS NULL', [alumno.ID]
     );
-    if (!cursoActual) return res.json([]); // Sin curso asignado = sin eventos
+    if (!cursoActual) return res.json([]);
 
     const [rows] = await pool.query(
       `SELECT e.ID, e.titulo, e.cuerpo, e.cuentaID, c.NombreApellido AS autorNombre,
@@ -1354,7 +1406,6 @@ app.get('/eventos', requireAuth, async (req, res) => {
 
 /**
  * GET /eventos/:id
- * Auth requerida. Devuelve un evento por ID respetando los mismos permisos que GET /eventos.
  */
 app.get('/eventos/:id', requireAuth, async (req, res) => {
   const eventoID = parseInt(req.params.id, 10);
@@ -1363,7 +1414,6 @@ app.get('/eventos/:id', requireAuth, async (req, res) => {
   try {
     const cuenta = req.userJwt;
 
-    // Construir la query base
     const baseSelect = `
       SELECT e.ID, e.titulo, e.cuerpo, e.cuentaID, c.NombreApellido AS autorNombre,
              e.fecha_publicacion, e.asignaturaID, a.Nombre AS asignaturaNombre,
@@ -1389,7 +1439,6 @@ app.get('/eventos/:id', requireAuth, async (req, res) => {
         [eventoID, ESTADOS_CONTENIDO.PUBLICADO, cuenta.id, ESTADOS_CONTENIDO.ELIMINADO]
       );
     } else {
-      // Alumno: solo publicados de su curso
       const [[alumno]] = await pool.query('SELECT a.ID FROM Alumno a WHERE a.cuentaID = ?', [cuenta.id]);
       if (!alumno) return res.status(403).json({ error: 'Sin perfil de alumno.' });
 
@@ -1419,7 +1468,6 @@ app.get('/eventos/:id', requireAuth, async (req, res) => {
  * POST /eventos
  * Admin (publica directo) o Docente (queda Pendiente).
  * Body: { titulo, cuerpo, fecha_publicacion, asignaturaID?, cursoIDs: number[] }
- * cursoIDs: IDs de los cursos que pueden ver el evento (obligatorio al menos uno).
  */
 app.post('/eventos', requireAuth, requireRole(ROLES.ADMINISTRADOR, ROLES.DOCENTE), async (req, res) => {
   const { titulo, cuerpo, fecha_publicacion, asignaturaID, cursoIDs } = req.body;
@@ -1440,7 +1488,6 @@ app.post('/eventos', requireAuth, requireRole(ROLES.ADMINISTRADOR, ROLES.DOCENTE
     );
     const eventoID = result.insertId;
 
-    // Asociar cursos
     const cursosValues = cursoIDs.map(cID => [eventoID, cID]);
     await conn.query('INSERT INTO EventosCursos (EventoID, CursoID) VALUES ?', [cursosValues]);
 
@@ -1476,8 +1523,6 @@ app.post('/eventos', requireAuth, requireRole(ROLES.ADMINISTRADOR, ROLES.DOCENTE
 
 /**
  * PATCH /eventos/:id
- * Admin edita cualquier evento. Docente edita solo el propio (Pendiente o Devuelto).
- * Body: { titulo?, cuerpo?, fecha_publicacion?, asignaturaID?, cursoIDs? }
  */
 app.patch('/eventos/:id', requireAuth, requireRole(ROLES.ADMINISTRADOR, ROLES.DOCENTE), async (req, res) => {
   const { titulo, cuerpo, fecha_publicacion, asignaturaID, cursoIDs } = req.body;
@@ -1532,7 +1577,6 @@ app.patch('/eventos/:id', requireAuth, requireRole(ROLES.ADMINISTRADOR, ROLES.DO
 
 /**
  * PATCH /eventos/:id/estado
- * Solo Admin. Cambia estado + comentario opcional → historial + notificación.
  */
 app.patch('/eventos/:id/estado', requireAuth, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
   const { estadoID, comentario } = req.body;
@@ -1577,7 +1621,6 @@ app.patch('/eventos/:id/estado', requireAuth, requireRole(ROLES.ADMINISTRADOR), 
 
 /**
  * DELETE /eventos/:id
- * Solo Admin. Borrado lógico → Eliminado.
  */
 app.delete('/eventos/:id', requireAuth, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
   const conn = await pool.getConnection();
@@ -1603,13 +1646,10 @@ app.delete('/eventos/:id', requireAuth, requireRole(ROLES.ADMINISTRADOR), async 
 
 // ─────────────────────────────────────────────────────────────
 // MATERIALES
-// Requieren auth. Acceso por curso (si no tiene cursos asignados = visible para todos los alumnos).
-// Soporta múltiples asignaturas vía MaterialAsignaturas.
 // ─────────────────────────────────────────────────────────────
 
 /**
  * GET /materiales
- * Auth requerida. Alumnos: solo materiales de sus cursos (o todos si el material no tiene cursos).
  */
 app.get('/materiales', requireAuth, async (req, res) => {
   try {
@@ -1659,7 +1699,7 @@ app.get('/materiales', requireAuth, async (req, res) => {
       return res.json(rows);
     }
 
-    // Alumno: materiales publicados accesibles por su curso o para todos
+    // Alumno
     const [[alumno]] = await pool.query('SELECT a.ID FROM Alumno a WHERE a.cuentaID = ?', [cuenta.id]);
     if (!alumno) return res.json([]);
 
@@ -1695,9 +1735,6 @@ app.get('/materiales', requireAuth, async (req, res) => {
 
 /**
  * POST /materiales
- * Admin (publica directo) o Docente (queda Pendiente).
- * Body: { Titulo, descripcion?, archivo, clasificacionID, asignaturaIDs?: number[], cursoIDs?: number[] }
- * cursoIDs vacío o ausente = visible para todos los alumnos.
  */
 app.post('/materiales', requireAuth, requireRole(ROLES.ADMINISTRADOR, ROLES.DOCENTE), async (req, res) => {
   const { Titulo, descripcion, archivo, clasificacionID, asignaturaIDs, cursoIDs } = req.body;
@@ -1717,13 +1754,11 @@ app.post('/materiales', requireAuth, requireRole(ROLES.ADMINISTRADOR, ROLES.DOCE
     );
     const materialID = result.insertId;
 
-    // Asociar asignaturas (múltiples)
     if (Array.isArray(asignaturaIDs) && asignaturaIDs.length > 0) {
       const aValues = asignaturaIDs.map(aID => [materialID, aID]);
       await conn.query('INSERT INTO MaterialAsignaturas (MaterialID, AsignaturaID) VALUES ?', [aValues]);
     }
 
-    // Asociar cursos (vacío = todos los alumnos)
     if (Array.isArray(cursoIDs) && cursoIDs.length > 0) {
       const cValues = cursoIDs.map(cID => [materialID, cID]);
       await conn.query('INSERT INTO MaterialCursos (MaterialID, CursoID) VALUES ?', [cValues]);
@@ -1761,8 +1796,6 @@ app.post('/materiales', requireAuth, requireRole(ROLES.ADMINISTRADOR, ROLES.DOCE
 
 /**
  * PATCH /materiales/:id
- * Admin edita cualquier material. Docente edita solo el propio (Pendiente o Devuelto).
- * Body: { Titulo?, descripcion?, archivo?, clasificacionID?, asignaturaIDs?, cursoIDs? }
  */
 app.patch('/materiales/:id', requireAuth, requireRole(ROLES.ADMINISTRADOR, ROLES.DOCENTE), async (req, res) => {
   const { Titulo, descripcion, archivo, clasificacionID, asignaturaIDs, cursoIDs } = req.body;
@@ -1827,7 +1860,6 @@ app.patch('/materiales/:id', requireAuth, requireRole(ROLES.ADMINISTRADOR, ROLES
 
 /**
  * PATCH /materiales/:id/estado
- * Solo Admin. Cambia estado + comentario opcional → historial + notificación.
  */
 app.patch('/materiales/:id/estado', requireAuth, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
   const { estadoID, comentario } = req.body;
@@ -1872,7 +1904,6 @@ app.patch('/materiales/:id/estado', requireAuth, requireRole(ROLES.ADMINISTRADOR
 
 /**
  * DELETE /materiales/:id
- * Solo Admin. Borrado lógico → Eliminado.
  */
 app.delete('/materiales/:id', requireAuth, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
   const conn = await pool.getConnection();
@@ -1902,7 +1933,6 @@ app.delete('/materiales/:id', requireAuth, requireRole(ROLES.ADMINISTRADOR), asy
 
 /**
  * GET /notificaciones
- * Obtiene las notificaciones del usuario autenticado ordenadas de la más reciente a la más antigua.
  */
 app.get('/notificaciones', requireAuth, async (req, res) => {
   try {
@@ -1923,7 +1953,6 @@ app.get('/notificaciones', requireAuth, async (req, res) => {
 
 /**
  * PATCH /notificaciones/:id/leida
- * Marca una notificación como leída (solo si pertenece al usuario autenticado).
  */
 app.patch('/notificaciones/:id/leida', requireAuth, async (req, res) => {
   try {
@@ -1944,16 +1973,11 @@ app.patch('/notificaciones/:id/leida', requireAuth, async (req, res) => {
 // ─────────────────────────────────────────────────────────────
 // EMPRESAS
 // GET /empresas → público, devuelve solo las activas.
-// GET /admin/empresas → solo Admin, devuelve todas las empresas con todos sus datos.
-// PATCH /empresas/:id/estado → solo Admin, cambia el estado de una empresa.
+// GET /admin/empresas → solo Admin, devuelve todas.
+// POST /empresas → solo Admin, crea empresa.
+// PATCH /empresas/:id → solo Admin, edita datos de la empresa.
+// PATCH /empresas/:id/estado → solo Admin, cambia estado.
 // ─────────────────────────────────────────────────────────────
-
-// Estados de empresa (estadoEmpresa table): Activa(1), Inactiva(2), Dada de baja(3)
-const ESTADOS_EMPRESA = {
-  ACTIVA: 1,
-  INACTIVA: 2,
-  DADA_DE_BAJA: 3,
-};
 
 /**
  * GET /empresas
@@ -1979,7 +2003,7 @@ app.get('/empresas', async (req, res) => {
 
 /**
  * GET /admin/empresas
- * Solo Admin. Devuelve todas las empresas con todos sus datos (cualquier estado).
+ * Solo Admin. Devuelve todas las empresas con todos sus datos.
  */
 app.get('/admin/empresas', requireAuth, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
   try {
@@ -1998,10 +2022,100 @@ app.get('/admin/empresas', requireAuth, requireRole(ROLES.ADMINISTRADOR), async 
 });
 
 /**
+ * POST /empresas
+ * Solo Admin. Crea una nueva empresa de pasantías.
+ * Body: { Nombre, Descripcion?, imagen?, estadoEmpresaID? }
+ */
+app.post('/empresas', requireAuth, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
+  const { Nombre, Descripcion, imagen, estadoEmpresaID } = req.body;
+
+  if (!Nombre || !Nombre.trim()) {
+    return res.status(400).json({ error: 'El nombre de la empresa es requerido.' });
+  }
+
+  const estadoFinal = estadoEmpresaID ? parseInt(estadoEmpresaID) : ESTADOS_EMPRESA.ACTIVA;
+  const estadosValidos = Object.values(ESTADOS_EMPRESA);
+  if (!estadosValidos.includes(estadoFinal)) {
+    return res.status(400).json({ error: `estadoEmpresaID inválido.` });
+  }
+
+  try {
+    const [result] = await pool.query(
+      `INSERT INTO Empresas (Nombre, Descripcion, imagen, estadoEmpresaID)
+       VALUES (?, ?, ?, ?)`,
+      [Nombre.trim(), Descripcion ?? null, imagen ?? null, estadoFinal]
+    );
+
+    const [[nueva]] = await pool.query(
+      `SELECT e.ID, e.Nombre, e.Descripcion, e.imagen, e.estadoEmpresaID, ee.estado AS estadoNombre
+       FROM Empresas e
+       LEFT JOIN estadoEmpresa ee ON e.estadoEmpresaID = ee.ID
+       WHERE e.ID = ?`,
+      [result.insertId]
+    );
+
+    res.status(201).json({ message: 'Empresa creada correctamente.', empresa: nueva });
+  } catch (err) {
+    console.error('[Empresas] POST /empresas:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * PATCH /empresas/:id
+ * Solo Admin. Edita los datos de una empresa (nombre, descripción, imagen).
+ * Body: { Nombre?, Descripcion?, imagen? }
+ */
+app.patch('/empresas/:id', requireAuth, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
+  const { Nombre, Descripcion, imagen } = req.body;
+
+  try {
+    const [[empresa]] = await pool.query(
+      'SELECT ID, Nombre FROM Empresas WHERE ID = ?',
+      [req.params.id]
+    );
+
+    if (!empresa) {
+      return res.status(404).json({ error: 'Empresa no encontrada.' });
+    }
+
+    const campos = [];
+    const params = [];
+
+    if (Nombre !== undefined) {
+      if (!Nombre.trim()) return res.status(400).json({ error: 'El nombre no puede estar vacío.' });
+      campos.push('Nombre = ?');
+      params.push(Nombre.trim());
+    }
+    if (Descripcion !== undefined) { campos.push('Descripcion = ?'); params.push(Descripcion); }
+    if (imagen !== undefined) { campos.push('imagen = ?'); params.push(imagen); }
+
+    if (campos.length === 0) {
+      return res.status(400).json({ error: 'No hay campos para actualizar.' });
+    }
+
+    params.push(req.params.id);
+    await pool.query(`UPDATE Empresas SET ${campos.join(', ')} WHERE ID = ?`, params);
+
+    const [[actualizada]] = await pool.query(
+      `SELECT e.ID, e.Nombre, e.Descripcion, e.imagen, e.estadoEmpresaID, ee.estado AS estadoNombre
+       FROM Empresas e
+       LEFT JOIN estadoEmpresa ee ON e.estadoEmpresaID = ee.ID
+       WHERE e.ID = ?`,
+      [req.params.id]
+    );
+
+    res.json({ message: 'Empresa actualizada correctamente.', empresa: actualizada });
+  } catch (err) {
+    console.error('[Empresas] PATCH /empresas/:id:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * PATCH /empresas/:id/estado
  * Solo Admin. Cambia el estado de una empresa.
  * Body: { estadoEmpresaID: number }
- * Valores válidos: 1 (Activa), 2 (Inactiva), 3 (Dada de baja)
  */
 app.patch('/empresas/:id/estado', requireAuth, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
   const { estadoEmpresaID } = req.body;
@@ -2053,5 +2167,4 @@ app.patch('/empresas/:id/estado', requireAuth, requireRole(ROLES.ADMINISTRADOR),
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Backend de Escuela PRoA corriendo en http://localhost:${PORT}`);
-  console.log(`OAuth Callback esperado en: ${process.env.GOOGLE_REDIRECT || 'http://localhost:3000/oauth2callback'}`);
 });

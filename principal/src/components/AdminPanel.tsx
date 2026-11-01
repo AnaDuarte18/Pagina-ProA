@@ -1,12 +1,13 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import ListaNovedades from "./admin/ListaNovedades";
 import ListaEventos from "./admin/ListaEventos";
 import ListaMaterial from "./admin/ListaMaterial";
 import ListaCuentas from "./admin/ListaCuentas";
+import ListaEmpresas from "./admin/ListaEmpresas";
 import CrearPublicacion from "./CrearPublicacion";
 
-type TabAdmin = "novedades" | "eventos" | "material" | "cuentas";
+type TabAdmin = "novedades" | "eventos" | "material" | "cuentas" | "empresas";
 
 export default function AdminPanel() {
   const { user } = useAuth();
@@ -43,7 +44,7 @@ export default function AdminPanel() {
             </span>
             <h1 className="text-2xl md:text-3xl font-black">Panel de Administración</h1>
             <p className="text-[#E7ECEF]/80 text-xs md:text-sm mt-1">
-              Revisá solicitudes docentes, aprobá publicaciones, gestioná el historial y administrá roles de usuario.
+              Revisá solicitudes docentes, aprobá publicaciones, gestioná el historial, administrá roles y empresas de pasantías.
             </p>
           </div>
 
@@ -101,6 +102,19 @@ export default function AdminPanel() {
             >
               Cuentas
             </button>
+            <button
+              onClick={() => {
+                setActiveTab("empresas");
+                setEditandoObjeto(null);
+              }}
+              className={`text-xs font-bold px-3.5 py-2 rounded-md transition-all whitespace-nowrap ${
+                activeTab === "empresas" && !editandoObjeto
+                  ? "bg-[#6096BA] text-white shadow-sm"
+                  : "text-[#A3CEF1] hover:text-white"
+              }`}
+            >
+              Empresas
+            </button>
           </div>
         </div>
 
@@ -143,6 +157,8 @@ export default function AdminPanel() {
             )}
 
             {activeTab === "cuentas" && <ListaCuentas />}
+
+            {activeTab === "empresas" && <ListaEmpresas />}
           </div>
         )}
       </div>

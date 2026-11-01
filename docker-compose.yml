@@ -33,9 +33,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-proa_pass}
       DB_NAME: ${DB_NAME:-proa}
       JWT_SECRET: ${JWT_SECRET}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
-      GOOGLE_REDIRECT: ${GOOGLE_REDIRECT}
+      BCRYPT_ROUNDS: ${BCRYPT_ROUNDS:-12}
     depends_on:
       db:
         condition: service_healthy
@@ -57,7 +55,6 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL}
-        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
         VITE_MOCK_AUTH: ${VITE_MOCK_AUTH:-false}
     restart: always
     expose:

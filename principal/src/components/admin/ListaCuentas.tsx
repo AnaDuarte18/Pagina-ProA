@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import type { CuentaItem, CursoItem } from "@/types";
 
@@ -13,7 +13,14 @@ export default function ListaCuentas() {
   const [filtroEstado, setFiltroEstado] = useState<string>("todos");
   const [busqueda, setBusqueda] = useState<string>("");
 
-  // Modales
+  // Selección múltiple
+  const [seleccionados, setSeleccionados] = useState<Set<number>>(new Set());
+  const [batchLoading, setBatchLoading] = useState(false);
+  const [batchEstado, setBatchEstado] = useState<number>(2); // Activo por defecto
+  const [batchRol, setBatchRol] = useState<number>(3); // Alumno por defecto
+  const [batchAsignarRol, setBatchAsignarRol] = useState(false);
+
+  // Modales individuales
   const [cambiandoRolId, setCambiandoRolId] = useState<number | null>(null);
   const [nuevoRolId, setNuevoRolId] = useState<number>(3);
   const [cambiandoCursoId, setCambiandoCursoId] = useState<number | null>(null);
@@ -42,7 +49,6 @@ export default function ListaCuentas() {
 
   useEffect(() => {
     fetchCuentas();
-    // Cargar cursos
     async function loadCursos() {
       try {
         const res = await fetch(`${BASE}/cursos`, {
@@ -58,6 +64,65 @@ export default function ListaCuentas() {
     }
     loadCursos();
   }, [token]);
+
+  // ── Selección múltiple ──────────────────────────────────────
+
+  const toggleSeleccion = (id: number) => {
+    setSeleccionados((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleTodos = () => {
+    if (seleccionados.size === cuentasFiltradas.length) {
+      setSeleccionados(new Set());
+    } else {
+      setSeleccionados(new Set(cuentasFiltradas.map((c) => c.ID)));
+    }
+  };
+
+  const limpiarSeleccion = () => setSeleccionados(new Set());
+
+  const aplicarBatch = async () => {
+    if (seleccionados.size === 0) return;
+    if (!confirm(`¿Confirmar cambio de estado para ${seleccionados.size} cuenta(s)?`)) return;
+
+    setBatchLoading(true);
+    try {
+      const body: any = {
+        ids: Array.from(seleccionados),
+        estadoCuentaID: batchEstado,
+      };
+      if (batchAsignarRol) body.rolID = batchRol;
+
+      const res = await fetch(`${BASE}/cuentas/batch/estado`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message);
+        limpiarSeleccion();
+        fetchCuentas();
+      } else {
+        alert(data.error || "Error al aplicar cambios.");
+      }
+    } catch {
+      alert("Error de conexión.");
+    } finally {
+      setBatchLoading(false);
+    }
+  };
+
+  // ── Acciones individuales ───────────────────────────────────
 
   const cambiarEstadoCuenta = async (id: number, nuevoEstadoID: number, nuevoRolID?: number) => {
     try {
@@ -135,19 +200,7 @@ export default function ListaCuentas() {
         const data = await res.json();
         setHistorialModal({ id, data });
       } else {
-        setHistorialModal({
-          id,
-          data: [
-            {
-              ID: 1,
-              campo: "rol",
-              valorAnterior: "Alumno",
-              valorNuevo: "Docente",
-              realizadoPor: "Admin ProA",
-              fechaDeCreacion: "2026-09-15 11:20:00",
-            },
-          ],
-        });
+        setHistorialModal({ id, data: [] });
       }
     } catch {
       setHistorialModal({ id, data: [] });
@@ -156,30 +209,14 @@ export default function ListaCuentas() {
     }
   };
 
+  // ── Filtros ─────────────────────────────────────────────────
+
   const cuentasFiltradas = cuentas.filter((c) => {
     const matchRol =
-      filtroRol === "todos"
-        ? true
-        : filtroRol === "1"
-        ? c.rolID === 1
-        : filtroRol === "2"
-        ? c.rolID === 2
-        : filtroRol === "3"
-        ? c.rolID === 3
-        : true;
+      filtroRol === "todos" ? true : c.rolID === parseInt(filtroRol);
 
     const matchEstado =
-      filtroEstado === "todos"
-        ? true
-        : filtroEstado === "1"
-        ? c.estadoCuentaID === 1
-        : filtroEstado === "2"
-        ? c.estadoCuentaID === 2
-        : filtroEstado === "3"
-        ? c.estadoCuentaID === 3
-        : filtroEstado === "4"
-        ? c.estadoCuentaID === 4
-        : true;
+      filtroEstado === "todos" ? true : c.estadoCuentaID === parseInt(filtroEstado);
 
     const matchBusqueda =
       c.NombreApellido.toLowerCase().includes(busqueda.toLowerCase()) ||
@@ -188,12 +225,15 @@ export default function ListaCuentas() {
     return matchRol && matchEstado && matchBusqueda;
   });
 
+  const todosMarcados =
+    cuentasFiltradas.length > 0 && seleccionados.size === cuentasFiltradas.length;
+  const algunoMarcado = seleccionados.size > 0;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Barra de Filtros */}
       <div className="bg-[#E7ECEF]/70 p-4 rounded-lg border border-[#8B8C89]/20 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4 flex-wrap">
-          {/* Filtro Rol */}
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-[#274C77] uppercase tracking-wider">Rol:</span>
             <select
@@ -208,7 +248,6 @@ export default function ListaCuentas() {
             </select>
           </div>
 
-          {/* Filtro Estado */}
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-[#274C77] uppercase tracking-wider">Estado:</span>
             <select
@@ -217,7 +256,7 @@ export default function ListaCuentas() {
               className="text-xs px-2.5 py-1.5 rounded bg-white border border-[#8B8C89]/30 text-[#0d1b2a]"
             >
               <option value="todos">Todos los estados</option>
-              <option value="1">Pendiente (externos)</option>
+              <option value="1">Pendiente</option>
               <option value="2">Activo</option>
               <option value="3">Rechazado</option>
               <option value="4">Suspendido</option>
@@ -236,6 +275,67 @@ export default function ListaCuentas() {
         </div>
       </div>
 
+      {/* ── Barra de Acciones Batch ── */}
+      {algunoMarcado && (
+        <div className="bg-[#274C77] text-white p-4 rounded-lg flex flex-wrap items-center gap-4">
+          <span className="text-sm font-bold">
+            {seleccionados.size} cuenta(s) seleccionada(s)
+          </span>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-[#A3CEF1]">Nuevo estado:</span>
+            <select
+              value={batchEstado}
+              onChange={(e) => setBatchEstado(parseInt(e.target.value))}
+              className="text-xs px-2.5 py-1.5 rounded bg-[#1a3050] border border-white/20 text-white"
+            >
+              <option value={1}>Pendiente</option>
+              <option value={2}>Activo</option>
+              <option value={3}>Rechazado</option>
+              <option value={4}>Suspendido</option>
+            </select>
+          </div>
+
+          <label className="flex items-center gap-2 text-xs text-[#A3CEF1] cursor-pointer">
+            <input
+              type="checkbox"
+              checked={batchAsignarRol}
+              onChange={(e) => setBatchAsignarRol(e.target.checked)}
+              className="rounded"
+            />
+            Asignar rol:
+          </label>
+
+          {batchAsignarRol && (
+            <select
+              value={batchRol}
+              onChange={(e) => setBatchRol(parseInt(e.target.value))}
+              className="text-xs px-2.5 py-1.5 rounded bg-[#1a3050] border border-white/20 text-white"
+            >
+              <option value={1}>Administrador</option>
+              <option value={2}>Docente</option>
+              <option value={3}>Alumno</option>
+            </select>
+          )}
+
+          <div className="flex items-center gap-2 ml-auto">
+            <button
+              onClick={limpiarSeleccion}
+              className="text-xs px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded text-white"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={aplicarBatch}
+              disabled={batchLoading}
+              className="text-xs px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:bg-emerald-800 rounded font-bold text-white"
+            >
+              {batchLoading ? "Aplicando..." : "Aplicar a Seleccionadas"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Tabla de Cuentas */}
       {loading ? (
         <div className="text-center py-12 text-sm text-[#8B8C89]">Cargando usuarios desde la base de datos...</div>
@@ -248,6 +348,16 @@ export default function ListaCuentas() {
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="bg-[#274C77] text-white font-bold">
+                {/* Checkbox "Seleccionar todos" */}
+                <th className="p-3.5 w-10">
+                  <input
+                    type="checkbox"
+                    checked={todosMarcados}
+                    onChange={toggleTodos}
+                    className="rounded cursor-pointer"
+                    title="Seleccionar todos"
+                  />
+                </th>
                 <th className="p-3.5">ID</th>
                 <th className="p-3.5">Usuario / Correo</th>
                 <th className="p-3.5">Rol Actual</th>
@@ -261,9 +371,23 @@ export default function ListaCuentas() {
                 const badgeRol = getRolBadge(c.rolID);
                 const badgeEstado = getEstadoCuentaBadge(c.estadoCuentaID);
                 const tieneSolicitud = !!c.solicitudDocente;
+                const estaSeleccionado = seleccionados.has(c.ID);
 
                 return (
-                  <tr key={c.ID} className="hover:bg-[#E7ECEF]/40 transition-colors">
+                  <tr
+                    key={c.ID}
+                    className={`transition-colors ${
+                      estaSeleccionado ? "bg-[#A3CEF1]/20" : "hover:bg-[#E7ECEF]/40"
+                    }`}
+                  >
+                    <td className="p-3.5">
+                      <input
+                        type="checkbox"
+                        checked={estaSeleccionado}
+                        onChange={() => toggleSeleccion(c.ID)}
+                        className="rounded cursor-pointer"
+                      />
+                    </td>
                     <td className="p-3.5 font-mono-code font-bold text-[#8B8C89]">#{c.ID}</td>
                     <td className="p-3.5">
                       <p className="font-bold text-[#274C77] text-sm">{c.NombreApellido}</p>
@@ -316,7 +440,7 @@ export default function ListaCuentas() {
                           className="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-2.5 py-1 rounded text-[11px]"
                           title="Aprobar solicitud y otorgar rol Docente"
                         >
-                          Aprobar como Docente
+                          Aprobar Docente
                         </button>
                       )}
 
@@ -336,17 +460,17 @@ export default function ListaCuentas() {
                         <button
                           onClick={() => setCambiandoCursoId(c.ID)}
                           className="bg-[#6096BA] hover:bg-[#274C77] text-white font-semibold px-2 py-1 rounded text-[11px]"
-                          title="Cambiar curso o registrar repetición de año"
+                          title="Cambiar curso"
                         >
                           Curso
                         </button>
                       )}
 
-                      {/* Ver Historial de la cuenta */}
+                      {/* Ver Historial */}
                       <button
                         onClick={() => verHistorial(c.ID)}
                         className="bg-white border border-[#8B8C89]/30 text-[#274C77] hover:bg-[#A3CEF1]/20 px-2 py-1 rounded text-[11px]"
-                        title="Ver auditoría de cambios de la cuenta"
+                        title="Ver auditoría de cambios"
                       >
                         Historial
                       </button>
@@ -400,7 +524,7 @@ export default function ListaCuentas() {
           <div className="bg-white rounded-lg p-6 max-w-sm w-full shadow-xl">
             <h3 className="text-sm font-bold text-[#274C77] mb-2">Cambiar Curso de Alumno #{cambiandoCursoId}</h3>
             <p className="text-xs text-[#8B8C89] mb-4 leading-relaxed">
-              El sistema cerrará el curso anterior y asignará el nuevo manteniendo automáticamente el <strong>año de ingreso original</strong>.
+              El sistema cerrará el curso anterior y asignará el nuevo manteniendo el <strong>año de ingreso original</strong>.
             </p>
             <select
               value={nuevoCursoId}
@@ -490,83 +614,29 @@ export default function ListaCuentas() {
 
 function getRolBadge(rolId: number) {
   switch (rolId) {
-    case 1:
-      return { label: "Administrador", className: "bg-purple-100 text-purple-800" };
-    case 2:
-      return { label: "Docente", className: "bg-blue-100 text-blue-800" };
-    case 3:
-      return { label: "Alumno", className: "bg-emerald-100 text-emerald-800" };
-    default:
-      return { label: "Usuario", className: "bg-gray-100 text-gray-800" };
+    case 1: return { label: "Administrador", className: "bg-purple-100 text-purple-800" };
+    case 2: return { label: "Docente", className: "bg-blue-100 text-blue-800" };
+    case 3: return { label: "Alumno", className: "bg-emerald-100 text-emerald-800" };
+    default: return { label: "Usuario", className: "bg-gray-100 text-gray-800" };
   }
 }
 
 function getEstadoCuentaBadge(estadoId: number) {
   switch (estadoId) {
-    case 1:
-      return { label: "Pendiente", className: "bg-amber-100 text-amber-800" };
-    case 2:
-      return { label: "Activo", className: "bg-emerald-100 text-emerald-800" };
-    case 3:
-      return { label: "Rechazado", className: "bg-red-100 text-red-800" };
-    case 4:
-      return { label: "Suspendido", className: "bg-gray-200 text-gray-800" };
-    default:
-      return { label: "Desconocido", className: "bg-gray-100 text-gray-600" };
+    case 1: return { label: "Pendiente", className: "bg-amber-100 text-amber-800" };
+    case 2: return { label: "Activo", className: "bg-emerald-100 text-emerald-800" };
+    case 3: return { label: "Rechazado", className: "bg-red-100 text-red-800" };
+    case 4: return { label: "Suspendido", className: "bg-gray-200 text-gray-800" };
+    default: return { label: "Desconocido", className: "bg-gray-100 text-gray-600" };
   }
 }
 
 function getMockCuentas(): CuentaItem[] {
   return [
-    {
-      ID: 1,
-      NombreApellido: "Admin ProA",
-      correo: "admin@escuelasproa.edu.ar",
-      rolID: 1,
-      rolNombre: "Administrador",
-      estadoCuentaID: 2,
-      estadoCuenta: "Activo",
-      solicitudDocente: false,
-    },
-    {
-      ID: 2,
-      NombreApellido: "Ana Duarte",
-      correo: "aduarte@escuelasproa.edu.ar",
-      rolID: 2,
-      rolNombre: "Docente",
-      estadoCuentaID: 2,
-      estadoCuenta: "Activo",
-      solicitudDocente: false,
-    },
-    {
-      ID: 3,
-      NombreApellido: "Lucas Méndez",
-      correo: "lmendez@escuelasproa.edu.ar",
-      rolID: 3,
-      rolNombre: "Alumno",
-      estadoCuentaID: 2,
-      estadoCuenta: "Activo",
-      solicitudDocente: false,
-    },
-    {
-      ID: 4,
-      NombreApellido: "Carla Romero",
-      correo: "carla.romero@gmail.com",
-      rolID: 3,
-      rolNombre: "Alumno",
-      estadoCuentaID: 1,
-      estadoCuenta: "Pendiente",
-      solicitudDocente: false,
-    },
-    {
-      ID: 6,
-      NombreApellido: "Valeria Torres",
-      correo: "vtorres@escuelasproa.edu.ar",
-      rolID: 3,
-      rolNombre: "Alumno",
-      estadoCuentaID: 2,
-      estadoCuenta: "Activo",
-      solicitudDocente: true,
-    },
+    { ID: 1, NombreApellido: "Admin ProA", correo: "admin@escuelasproa.edu.ar", rolID: 1, rolNombre: "Administrador", estadoCuentaID: 2, estadoCuenta: "Activo", solicitudDocente: false },
+    { ID: 2, NombreApellido: "Ana Duarte", correo: "aduarte@escuelasproa.edu.ar", rolID: 2, rolNombre: "Docente", estadoCuentaID: 2, estadoCuenta: "Activo", solicitudDocente: false },
+    { ID: 3, NombreApellido: "Lucas Méndez", correo: "lmendez@escuelasproa.edu.ar", rolID: 3, rolNombre: "Alumno", estadoCuentaID: 2, estadoCuenta: "Activo", solicitudDocente: false },
+    { ID: 4, NombreApellido: "Carla Romero", correo: "carla.romero@gmail.com", rolID: 3, rolNombre: "Alumno", estadoCuentaID: 1, estadoCuenta: "Pendiente", solicitudDocente: false },
+    { ID: 6, NombreApellido: "Valeria Torres", correo: "vtorres@escuelasproa.edu.ar", rolID: 3, rolNombre: "Alumno", estadoCuentaID: 2, estadoCuenta: "Activo", solicitudDocente: true },
   ];
 }

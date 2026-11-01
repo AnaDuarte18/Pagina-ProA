@@ -135,3 +135,12 @@ export interface MaterialBackendItem {
   cursoIDs?: string | number[];
   asignaturaIDs?: string | number[];
 }
+
+export interface Empresa {
+  ID: number;
+  Nombre: string;
+  Descripcion?: string;
+  imagen?: string | null;
+  estadoEmpresaID: number;
+  estadoNombre?: string;
+}
