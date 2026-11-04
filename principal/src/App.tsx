@@ -15,6 +15,7 @@ import CrearPublicacion from "@/components/CrearPublicacion";
 import AdminPanel from "@/components/AdminPanel";
 import SeleccionCursoDocente from "@/components/SeleccionCursoDocente";
 import SolicitudDocente from "@/components/SolicitudDocente";
+import Historia from "@/components/Historia";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import type { User } from "@/types";
 import TablaNovedades from "@/components/TablaNovedades";
@@ -91,7 +92,6 @@ function Layout({ children }: { children: React.ReactNode }) {
 
 function PaginaInicio() {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const isAlumnoSinAcceso =
     user?.roleId === 3 &&
     (user?.estadoCuentaId === 1 || user?.estadoCuentaId === 3 || user?.estadoCuentaId === 4);
@@ -224,8 +224,11 @@ export function pageToPath(page: string): string {
   const map: Record<string, string> = {
     "Inicio": "/",
     "Académico": "/academico",
+    "Historia": "/historia",
     "Eventos": "/eventos",
+    "Actividades": "/eventos",
     "Novedades": "/novedades",
+    "Noticias": "/novedades",
     "Material": "/material",
     "Contacto": "/contacto",
     "Nuevo": "/nuevo",
@@ -244,7 +247,9 @@ function AppRoutes() {
       <Routes>
         <Route path="/" element={<PaginaInicio />} />
         <Route path="/academico" element={<PaginaAcademico />} />
+        <Route path="/historia" element={<Historia />} />
         <Route path="/eventos" element={<PaginaEventos />} />
+        <Route path="/actividades" element={<Navigate to="/eventos" replace />} />
         <Route path="/material" element={<PaginaMaterial />} />
         <Route path="/contacto" element={<PaginaContacto />} />
         <Route path="/nuevo" element={<PaginaNuevo />} />
@@ -252,6 +257,7 @@ function AppRoutes() {
         <Route path="/seleccion-inicial" element={<PaginaSeleccionInicial />} />
         <Route path="/sos-docente" element={<PaginaSosDocente />} />
         <Route path="/novedades" element={<TablaNovedades />} />
+        <Route path="/noticias" element={<Navigate to="/novedades" replace />} />
         <Route path="/novedades/:id" element={<NovedadDetalle />} />
         <Route path="/eventos/:id" element={<EventoDetalle />} />
         {/* Cualquier ruta desconocida va a inicio */}

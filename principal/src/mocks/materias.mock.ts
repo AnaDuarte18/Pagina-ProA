@@ -4,14 +4,12 @@ export const MATERIAS = [
     mono: true,
     nombre: "Programación",
     desc: "Python, JavaScript y lógica computacional desde 1.° año. Proyectos reales desde el primer cuatrimestre.",
-    badge: "eje troncal",
   },
   {
     icono: "[ ]",
     mono: true,
     nombre: "Pensamiento Computacional",
     desc: "Algoritmos, estructuras de datos y resolución de problemas complejos con enfoque práctico.",
-    badge: "eje troncal",
   },
   {
     icono: "</>",

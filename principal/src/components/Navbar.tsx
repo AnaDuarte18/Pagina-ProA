@@ -25,7 +25,7 @@ export default function Navbar({ bloqueado }: NavbarProps) {
   // Determinar los enlaces según el estado y rol del usuario
   const getNavLinks = () => {
     if (!user) {
-      return ["Inicio", "Académico", "Contacto"];
+      return ["Inicio", "Académico", "Historia", "Contacto"];
     }
 
     const isAlumnoSinAcceso =
@@ -34,20 +34,20 @@ export default function Navbar({ bloqueado }: NavbarProps) {
 
     if (user.roleId === 3) {
       if (isAlumnoSinAcceso) {
-        return ["Inicio", "Académico", "Contacto", "¿Sos docente?"];
+        return ["Inicio", "Académico", "Historia", "Contacto", "¿Sos docente?"];
       }
-      return ["Inicio", "Académico", "Eventos", "Material", "Contacto", "¿Sos docente?"];
+      return ["Inicio", "Académico", "Historia", "Eventos", "Material", "Contacto", "¿Sos docente?"];
     }
 
     if (user.roleId === 2) {
-      return ["Inicio", "Académico", "Eventos", "Material", "Contacto", "Nuevo"];
+      return ["Inicio", "Académico", "Historia", "Eventos", "Material", "Contacto", "Nuevo"];
     }
 
     if (user.roleId === 1) {
-      return ["Inicio", "Académico", "Eventos", "Material", "Contacto", "Nuevo", "Administrar"];
+      return ["Inicio", "Académico", "Historia", "Eventos", "Material", "Contacto", "Nuevo", "Administrar"];
     }
 
-    return ["Inicio", "Académico", "Contacto"];
+    return ["Inicio", "Académico", "Historia", "Contacto"];
   };
 
   const links = getNavLinks();

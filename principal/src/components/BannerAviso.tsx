@@ -5,7 +5,7 @@
  *   false → el banner está oculto
  * ────────────────────────────────────────────────────────────────────────────
  */
-const BANNER_ACTIVE = true;
+const BANNER_ACTIVE = false;
 
 export default function BannerAviso() {
   if (!BANNER_ACTIVE) return null;

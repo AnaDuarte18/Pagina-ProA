@@ -40,7 +40,7 @@ export default function OrientacionPrincipal() {
               items: ["Pasantías", "Inserción al mercado laboral", "Simulación de Entrevista Laboral y desarrollo de Curriculum Vitae", "Elaboración de Charla TED"],
             }
           ].map((fase, i) => (
-            <div key={i} className="bg-white/5 border border-white/10 rounded-sm p-6 hover:border-[#6096BA]/40 transition-colors">
+            <div key={i} className="bg-white/5 border border-white/10 rounded-sm p-6">
               <p className="font-mono-code text-[#6096BA] text-xs mb-1">{fase.año}</p>
               <h3 className="font-display font-bold text-xl text-white mb-4">{fase.titulo}</h3>
               <ul className="flex flex-col gap-2">

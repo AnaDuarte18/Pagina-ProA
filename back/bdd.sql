@@ -584,4 +584,13 @@ VALUES
     ('Club de Arte'),                -- ID 22
     ('Artes visuales'),              -- ID 23
     ('Música');                      -- ID 24
-
+
+-- Empresas para pasantías
+INSERT INTO Empresas (Nombre, Descripcion, imagen, estadoEmpresaID)
+VALUES
+    ('Mercado Libre', 'E-commerce y desarrollo de software financiero a escala regional.', 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&h=400&fit=crop&auto=format', 1),
+    ('Globant', 'Soluciones de transformación digital, inteligencia artificial y desarrollo cloud.', 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=600&h=400&fit=crop&auto=format', 1),
+    ('Accenture', 'Consultoría tecnológica, arquitectura de software y ciberseguridad.', 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&h=400&fit=crop&auto=format', 1),
+    ('Telecom Argentina', 'Infraestructura de telecomunicaciones, redes y servicios digitales.', 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&h=400&fit=crop&auto=format', 1),
+    ('ZF Argentina (San Francisco)', 'Sistemas avanzados de manufactura automotriz e integración industrial 4.0.', 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&h=400&fit=crop&auto=format', 1),
+    ('Macser IT', 'Desarrollo de software a medida, aplicaciones web y móviles para empresas.', 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&h=400&fit=crop&auto=format', 1);

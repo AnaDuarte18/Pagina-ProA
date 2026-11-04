@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import type { EventoBackendItem } from "@/types";
 
@@ -174,7 +174,7 @@ export default function ListaEventos({ onEditar }: ListaEventosProps) {
             return (
               <div
                 key={ev.ID}
-                className="bg-white rounded-lg p-5 border border-[#8B8C89]/20 shadow-sm hover:border-[#6096BA] transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
+                className="bg-white rounded-lg p-5 border border-[#8B8C89]/20 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4"
               >
                 <div className="space-y-1.5 max-w-2xl">
                   <div className="flex items-center gap-2 flex-wrap">

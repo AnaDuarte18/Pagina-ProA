@@ -1,10 +1,10 @@
 export const NAV_LINKS = [
   "Inicio",
   "Académico",
-  "Programación",
+  "Historia",
+  "Novedades",
+  "Eventos",
   "Material",
-  "Actividades",
-  "Noticias",
   "Contacto",
 ];
 

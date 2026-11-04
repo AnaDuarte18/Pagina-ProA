@@ -12,7 +12,7 @@ export async function fetchEmpresas(): Promise<Empresa[]> {
     const res = await fetch(`${API_BASE_URL}/empresas`);
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         return data;
       }
     }

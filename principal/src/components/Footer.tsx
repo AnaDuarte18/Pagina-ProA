@@ -6,6 +6,12 @@ import { pageToPath } from "@/App";
 export default function Footer() {
   const navigate = useNavigate();
 
+  const enlacesInstitucionales = [
+    { label: "Historia", path: "/historia" },
+    { label: "Propuesta Académica", path: "/academico" },
+    { label: "Contacto", path: "/contacto" },
+  ];
+
   return (
     <footer className="bg-[#0d1b2a] text-[#8B8C89]">
       <div className="max-w-7xl mx-auto px-6 py-14 grid md:grid-cols-4 gap-10">
@@ -19,9 +25,9 @@ export default function Footer() {
             </div>
           </div>
           <p className="text-sm leading-relaxed max-w-xs">
-            Av. San Martín 1456, San Francisco, Córdoba<br />
-            Tel: (03564) 42-0000<br />
-            <span className="font-mono-code text-xs">secretaria@proa.edu.ar</span>
+            Las Guayanas 533, San Francisco, Córdoba<br />
+            Tel: (03564) 59-6752<br />
+            <span className="font-mono-code text-xs">sanfrancisco.tec@escuelasproa.edu.ar</span>
           </p>
         </div>
 
@@ -46,9 +52,14 @@ export default function Footer() {
         <div>
           <p className="text-white text-xs font-bold uppercase tracking-wider mb-4">Institucional</p>
           <ul className="flex flex-col gap-2 text-sm">
-            {["Historia", "Equipo directivo", "Proyecto PRoA", "Transparencia"].map((l) => (
-              <li key={l}>
-                <a href="#" className="hover:text-white transition-colors">{l}</a>
+            {enlacesInstitucionales.map((item) => (
+              <li key={item.path}>
+                <button
+                  onClick={() => navigate(item.path)}
+                  className="hover:text-white transition-colors text-left"
+                >
+                  {item.label}
+                </button>
               </li>
             ))}
           </ul>
@@ -58,7 +69,6 @@ export default function Footer() {
       {/* Copyright */}
       <div className="border-t border-white/10">
         <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between text-xs">
-          <p>© 2026 Escuela PRoA San Francisco. Todos los derechos reservados.</p>
           <p className="font-mono-code">Ministerio de Educación · Córdoba</p>
         </div>
       </div>

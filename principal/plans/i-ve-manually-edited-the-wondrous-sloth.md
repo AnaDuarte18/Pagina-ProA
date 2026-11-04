@@ -89,7 +89,6 @@ Envolver las secciones actuales:
     {/* NOTICIAS */}
     {/* EVENTOS */}
     {/* ACADÉMICO */}
-    {/* VIDA ESTUDIANTIL */}
     {/* CTA */}
   </>
 )}

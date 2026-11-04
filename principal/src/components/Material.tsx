@@ -204,13 +204,13 @@ export default function Material() {
                 {filtrados.map((m) => (
                   <div
                     key={m.id}
-                    className="group bg-white border border-[#c0cdd7] rounded-sm hover:border-[#6096BA] transition-colors flex flex-col h-full"
+                    className="bg-white border border-[#c0cdd7] rounded-sm flex flex-col h-full"
                   >
                     {/* Cabecera de tarjeta */}
                     <div className="p-5 border-b border-[#E7ECEF] flex items-start gap-4">
                       <PdfIcon />
                       <div className="min-w-0">
-                        <h3 className="font-display font-bold text-base leading-snug group-hover:text-[#274C77] transition-colors line-clamp-2">
+                        <h3 className="font-display font-bold text-base leading-snug line-clamp-2">
                           {m.titulo}
                         </h3>
                         <div className="flex flex-wrap gap-1.5 mt-2">

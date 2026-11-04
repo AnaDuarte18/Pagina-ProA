@@ -26,7 +26,7 @@ export default function Contacto() {
             </h2>
             <div className="space-y-4 text-sm">
               {/* Correo */}
-              <div className="p-4 rounded-lg bg-[#E7ECEF]/60 border border-[#8B8C89]/20 hover:border-[#6096BA] transition-colors">
+              <div className="p-4 rounded-lg bg-[#E7ECEF]/60 border border-[#8B8C89]/20 transition-colors">
                 <div className="flex items-center gap-3 mb-1">
                   <div className="w-8 h-8 rounded-md bg-[#274C77] text-white flex items-center justify-center shrink-0">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -35,12 +35,11 @@ export default function Contacto() {
                   </div>
                   <span className="font-bold text-[#274C77]">Correo Electrónico</span>
                 </div>
-                <p className="text-[#0d1b2a] font-mono-code text-xs ml-11">contacto@escuelasproa.edu.ar</p>
-                <p className="text-[#8B8C89] font-mono-code text-xs ml-11">alumnos@escuelasproa.edu.ar</p>
+                <p className="text-[#0d1b2a] font-mono-code text-xs ml-11">sanfrancisco.tec@escuelasproa.edu.ar</p>
               </div>
 
               {/* Teléfono */}
-              <div className="p-4 rounded-lg bg-[#E7ECEF]/60 border border-[#8B8C89]/20 hover:border-[#6096BA] transition-colors">
+              <div className="p-4 rounded-lg bg-[#E7ECEF]/60 border border-[#8B8C89]/20 transition-colors">
                 <div className="flex items-center gap-3 mb-1">
                   <div className="w-8 h-8 rounded-md bg-[#274C77] text-white flex items-center justify-center shrink-0">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -49,12 +48,12 @@ export default function Contacto() {
                   </div>
                   <span className="font-bold text-[#274C77]">Teléfono & WhatsApp</span>
                 </div>
-                <p className="text-[#0d1b2a] text-xs ml-11">+54 (3564) 43-9000</p>
+                <p className="text-[#0d1b2a] text-xs ml-11">+54 (3564) 596752</p>
                 <p className="text-[#8B8C89] text-xs ml-11">Lun a Vie: 07:30 a 17:30 hs</p>
               </div>
 
               {/* Ubicación */}
-              <div className="p-4 rounded-lg bg-[#E7ECEF]/60 border border-[#8B8C89]/20 hover:border-[#6096BA] transition-colors">
+              <div className="p-4 rounded-lg bg-[#E7ECEF]/60 border border-[#8B8C89]/20 transition-colors">
                 <div className="flex items-center gap-3 mb-1">
                   <div className="w-8 h-8 rounded-md bg-[#274C77] text-white flex items-center justify-center shrink-0">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -64,7 +63,7 @@ export default function Contacto() {
                   </div>
                   <span className="font-bold text-[#274C77]">Sede Institucional</span>
                 </div>
-                <p className="text-[#0d1b2a] text-xs ml-11">Av. de la Universidad y Güemes</p>
+                <p className="text-[#0d1b2a] text-xs ml-11">Las Guayanas 533</p>
                 <p className="text-[#8B8C89] text-xs ml-11">San Francisco, Córdoba, Argentina</p>
               </div>
             </div>
@@ -78,7 +77,7 @@ export default function Contacto() {
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <a
-                href="https://instagram.com"
+                href="https://instagram.com/proatecnica.sf/"
                 target="_blank"
                 rel="noreferrer"
                 className="flex items-center gap-3 p-3 rounded-lg border border-[#8B8C89]/30 bg-white hover:bg-[#A3CEF1]/20 hover:border-[#6096BA] text-[#274C77] transition-all group"
@@ -90,29 +89,11 @@ export default function Contacto() {
                 </div>
                 <div>
                   <p className="text-xs font-bold leading-tight">Instagram</p>
-                  <p className="text-[11px] text-[#8B8C89]">@proasanfco</p>
+                  <p className="text-[11px] text-[#8B8C89]">@proatecnica.sf</p>
                 </div>
               </a>
-
               <a
-                href="https://facebook.com"
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-3 p-3 rounded-lg border border-[#8B8C89]/30 bg-white hover:bg-[#A3CEF1]/20 hover:border-[#6096BA] text-[#274C77] transition-all group"
-              >
-                <div className="w-8 h-8 rounded-full bg-[#6096BA]/20 text-[#274C77] flex items-center justify-center group-hover:bg-[#274C77] group-hover:text-white transition-colors">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-xs font-bold leading-tight">Facebook</p>
-                  <p className="text-[11px] text-[#8B8C89]">/EscuelaProaSanFco</p>
-                </div>
-              </a>
-
-              <a
-                href="https://youtube.com"
+                href="https://www.youtube.com/@profeezeok"
                 target="_blank"
                 rel="noreferrer"
                 className="flex items-center gap-3 p-3 rounded-lg border border-[#8B8C89]/30 bg-white hover:bg-[#A3CEF1]/20 hover:border-[#6096BA] text-[#274C77] transition-all group"
@@ -124,12 +105,12 @@ export default function Contacto() {
                 </div>
                 <div>
                   <p className="text-xs font-bold leading-tight">YouTube</p>
-                  <p className="text-[11px] text-[#8B8C89]">Canal Institucional</p>
+                  <p className="text-[11px] text-[#8B8C89]">Canal de YouTube</p>
                 </div>
               </a>
 
               <a
-                href="https://linkedin.com"
+                href="https://ar.linkedin.com/company/escuela-proa-t%C3%A9cnica-sede-san-francisco"
                 target="_blank"
                 rel="noreferrer"
                 className="flex items-center gap-3 p-3 rounded-lg border border-[#8B8C89]/30 bg-white hover:bg-[#A3CEF1]/20 hover:border-[#6096BA] text-[#274C77] transition-all group"
@@ -141,7 +122,7 @@ export default function Contacto() {
                 </div>
                 <div>
                   <p className="text-xs font-bold leading-tight">LinkedIn</p>
-                  <p className="text-[11px] text-[#8B8C89]">Comunidad PRoA</p>
+                  <p className="text-[11px] text-[#8B8C89]">Escuela ProA Técnica Sede San Francisco</p>
                 </div>
               </a>
             </div>

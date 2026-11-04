@@ -68,7 +68,7 @@ export default function Empresas() {
             {empresas.map((empresa) => (
               <div
                 key={empresa.ID}
-                className="group bg-white rounded-xl border border-[#c0cdd7]/80 hover:border-[#274C77] overflow-hidden shadow-xs hover:shadow-md transition-all duration-200 flex flex-col"
+                className="bg-white rounded-xl border border-[#c0cdd7]/80 overflow-hidden shadow-xs flex flex-col"
               >
                 {/* Imagen de la empresa */}
                 <div className="relative h-48 w-full bg-slate-100 overflow-hidden border-b border-slate-100">
@@ -78,7 +78,7 @@ export default function Empresas() {
                       "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=600&h=400&fit=crop&auto=format"
                     }
                     alt={empresa.Nombre}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    className="w-full h-full object-cover"
                     loading="lazy"
                     onError={(e) => {
                       // Fallback en caso de URL rota
@@ -96,7 +96,7 @@ export default function Empresas() {
                 {/* Información: Nombre y descripción */}
                 <div className="p-6 flex-1 flex flex-col justify-between">
                   <div>
-                    <h3 className="font-display text-xl font-bold text-[#274C77] group-hover:text-[#6096BA] transition-colors mb-2">
+                    <h3 className="font-display text-xl font-bold text-[#274C77] mb-2">
                       {empresa.Nombre}
                     </h3>
                     {empresa.Descripcion && (

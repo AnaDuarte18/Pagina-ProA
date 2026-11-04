@@ -143,4 +143,13 @@ export interface Empresa {
   imagen?: string | null;
   estadoEmpresaID: number;
   estadoNombre?: string;
-}
+}
+export interface HitoHistoria {
+  periodo: string;
+  titulo: string;
+  subtitulo: string;
+  texto: string;
+  imagen: string;
+  imagenAlt: string;
+  pieDeFoto: string;
+}
