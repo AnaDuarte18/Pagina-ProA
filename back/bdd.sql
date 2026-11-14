@@ -134,17 +134,7 @@ CREATE TABLE Estado (
 
 
 -- =========================================================
--- 9. CLASIFICACION
--- =========================================================
-
-CREATE TABLE Clasificacion (
-    ID INT AUTO_INCREMENT PRIMARY KEY,
-    Clasificacion VARCHAR(100) NOT NULL UNIQUE
-);
-
-
--- =========================================================
--- 10. NOVEDAD / POSTEO
+-- 9. NOVEDAD / POSTEO
 -- =========================================================
 
 CREATE TABLE Novedad (
@@ -267,99 +257,15 @@ CREATE TABLE EventosCursos (
 
 
 -- =========================================================
--- 14. MATERIAL
--- =========================================================
-
-CREATE TABLE Material (
-    ID INT AUTO_INCREMENT PRIMARY KEY,
-    Titulo VARCHAR(200) NOT NULL,
-    descripcion TEXT NULL,
-    archivo VARCHAR(500) NOT NULL,
-    cuentaID INT NOT NULL,
-    fecha_publicacion DATETIME NULL,
-    clasificacionID INT NOT NULL,
-    estadoID INT NOT NULL,
-    fechaDeCreacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT FK_Material_Cuenta
-        FOREIGN KEY (cuentaID)
-        REFERENCES Cuenta(ID)
-        ON UPDATE CASCADE
-        ON DELETE RESTRICT,
-
-    CONSTRAINT FK_Material_Clasificacion
-        FOREIGN KEY (clasificacionID)
-        REFERENCES Clasificacion(ID)
-        ON UPDATE CASCADE
-        ON DELETE RESTRICT,
-
-    CONSTRAINT FK_Material_Estado
-        FOREIGN KEY (estadoID)
-        REFERENCES Estado(ID)
-        ON UPDATE CASCADE
-        ON DELETE RESTRICT
-);
-
-
--- =========================================================
--- 15. MATERIAL - CURSOS
--- =========================================================
-
-CREATE TABLE MaterialCursos (
-    MaterialID INT NOT NULL,
-    CursoID INT NOT NULL,
-
-    PRIMARY KEY (MaterialID, CursoID),
-
-    CONSTRAINT FK_MaterialCursos_Material
-        FOREIGN KEY (MaterialID)
-        REFERENCES Material(ID)
-        ON UPDATE CASCADE
-        ON DELETE CASCADE,
-
-    CONSTRAINT FK_MaterialCursos_Curso
-        FOREIGN KEY (CursoID)
-        REFERENCES Curso(ID)
-        ON UPDATE CASCADE
-        ON DELETE CASCADE
-);
-
-
--- =========================================================
--- 16. MATERIAL - ASIGNATURAS
--- =========================================================
-
-CREATE TABLE MaterialAsignaturas (
-    MaterialID INT NOT NULL,
-    AsignaturaID INT NOT NULL,
-
-    PRIMARY KEY (MaterialID, AsignaturaID),
-
-    CONSTRAINT FK_MaterialAsignaturas_Material
-        FOREIGN KEY (MaterialID)
-        REFERENCES Material(ID)
-        ON UPDATE CASCADE
-        ON DELETE CASCADE,
-
-    CONSTRAINT FK_MaterialAsignaturas_Asignatura
-        FOREIGN KEY (AsignaturaID)
-        REFERENCES Asignatura(ID)
-        ON UPDATE CASCADE
-        ON DELETE RESTRICT
-);
-
-
--- =========================================================
--- 17. HISTORIAL (contenido)
+-- 14. HISTORIAL (contenido)
 -- =========================================================
 
 CREATE TABLE Historial (
     ID INT AUTO_INCREMENT PRIMARY KEY,
 
-    -- Solo uno de estos tres campos debe tener valor
+    -- Solo uno de estos dos campos debe tener valor
     NovedadID INT NULL,
     EventoID INT NULL,
-    MaterialID INT NULL,
 
     estadoAnteriorID INT NOT NULL,
     estadoNuevoID INT NOT NULL,
@@ -376,12 +282,6 @@ CREATE TABLE Historial (
     CONSTRAINT FK_Historial_Evento
         FOREIGN KEY (EventoID)
         REFERENCES Evento(ID)
-        ON UPDATE CASCADE
-        ON DELETE CASCADE,
-
-    CONSTRAINT FK_Historial_Material
-        FOREIGN KEY (MaterialID)
-        REFERENCES Material(ID)
         ON UPDATE CASCADE
         ON DELETE CASCADE,
 
@@ -406,8 +306,7 @@ CREATE TABLE Historial (
     CONSTRAINT CK_Historial_UnSoloContenido
         CHECK (
             (NovedadID IS NOT NULL) +
-            (EventoID IS NOT NULL) +
-            (MaterialID IS NOT NULL) = 1
+            (EventoID IS NOT NULL) = 1
         )
 );
 
@@ -488,6 +387,7 @@ CREATE TABLE Empresas (
     Nombre VARCHAR(150) NOT NULL,
     Descripcion TEXT,
     imagen VARCHAR(500),
+    enlaceExterno VARCHAR(500),
     estadoEmpresaID INT NOT NULL,
 
     CONSTRAINT FK_Empresas_Estado
@@ -519,13 +419,6 @@ VALUES
     ('Devuelto'),
     ('Publicado'),
     ('Eliminado');
-
-INSERT INTO Clasificacion (Clasificacion)
-VALUES
-    ('Cuadernillo'),
-    ('Material de clase'),
-    ('Material de lectura'),
-    ('Libro');
 
 INSERT INTO tipoNotificacion (Tipo)
 VALUES
@@ -586,11 +479,11 @@ VALUES
     ('Música');                      -- ID 24
 
 -- Empresas para pasantías
-INSERT INTO Empresas (Nombre, Descripcion, imagen, estadoEmpresaID)
+INSERT INTO Empresas (Nombre, Descripcion, imagen, enlaceExterno, estadoEmpresaID)
 VALUES
-    ('Mercado Libre', 'E-commerce y desarrollo de software financiero a escala regional.', 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&h=400&fit=crop&auto=format', 1),
-    ('Globant', 'Soluciones de transformación digital, inteligencia artificial y desarrollo cloud.', 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=600&h=400&fit=crop&auto=format', 1),
-    ('Accenture', 'Consultoría tecnológica, arquitectura de software y ciberseguridad.', 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&h=400&fit=crop&auto=format', 1),
-    ('Telecom Argentina', 'Infraestructura de telecomunicaciones, redes y servicios digitales.', 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&h=400&fit=crop&auto=format', 1),
-    ('ZF Argentina (San Francisco)', 'Sistemas avanzados de manufactura automotriz e integración industrial 4.0.', 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&h=400&fit=crop&auto=format', 1),
-    ('Macser IT', 'Desarrollo de software a medida, aplicaciones web y móviles para empresas.', 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&h=400&fit=crop&auto=format', 1);
+    ('Mercado Libre', 'E-commerce y desarrollo de software financiero a escala regional.', 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&h=400&fit=crop&auto=format', 'https://www.mercadolibre.com.ar', 1),
+    ('Globant', 'Soluciones de transformación digital, inteligencia artificial y desarrollo cloud.', 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=600&h=400&fit=crop&auto=format', 'https://www.globant.com', 1),
+    ('Accenture', 'Consultoría tecnológica, arquitectura de software y ciberseguridad.', 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&h=400&fit=crop&auto=format', 'https://www.accenture.com/ar-es', 1),
+    ('Telecom Argentina', 'Infraestructura de telecomunicaciones, redes y servicios digitales.', 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&h=400&fit=crop&auto=format', 'https://www.telecom.com.ar', 1),
+    ('ZF Argentina (San Francisco)', 'Sistemas avanzados de manufactura automotriz e integración industrial 4.0.', 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&h=400&fit=crop&auto=format', 'https://www.zf.com', 1),
+    ('Macser IT', 'Desarrollo de software a medida, aplicaciones web y móviles para empresas.', 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&h=400&fit=crop&auto=format', 'https://www.macser.com.ar', 1);

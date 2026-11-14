@@ -15,7 +15,16 @@ CREATE TABLE Rol (
 );
 
 -- =========================================================
--- 2. CUENTA
+-- 2. ESTADO CUENTA
+-- =========================================================
+
+CREATE TABLE EstadoCuenta (
+    ID INT AUTO_INCREMENT PRIMARY KEY,
+    estado VARCHAR(50) NOT NULL UNIQUE
+);
+
+-- =========================================================
+-- 3. CUENTA
 -- =========================================================
 
 CREATE TABLE Cuenta (
@@ -25,9 +34,7 @@ CREATE TABLE Cuenta (
 
     correo VARCHAR(255) NOT NULL UNIQUE,
 
-    proveedorOAuth VARCHAR(50) NOT NULL,
-
-    oauthID VARCHAR(255) NOT NULL,
+    passwordHash VARCHAR(255) NOT NULL,
 
     rolID INT NOT NULL,
 
@@ -35,53 +42,17 @@ CREATE TABLE Cuenta (
 
     solicitudDocente TINYINT(1) NOT NULL DEFAULT 0,
 
+    tokenResetPassword VARCHAR(255) NULL,
+
+    tokenResetExpira DATETIME NULL,
+
     CONSTRAINT FK_Cuenta_Rol
         FOREIGN KEY (rolID)
         REFERENCES Rol(ID),
 
     CONSTRAINT FK_Cuenta_EstadoCuenta
         FOREIGN KEY (estadoCuentaID)
-        REFERENCES estadoCuenta(ID),
-
-    CONSTRAINT UQ_Cuenta_OAuth
-        UNIQUE (proveedorOAuth, oauthID)
-);
-
--- =========================================================
--- 3. HISTORIAL CUENTA
--- =========================================================
-
-CREATE TABLE HistorialCuenta (
-    ID INT AUTO_INCREMENT PRIMARY KEY,
-
-    -- Cuenta afectada por el cambio
-    cuentaID INT NOT NULL,
-
-    -- Quién realizó el cambio (admin u otro usuario con permisos)
-    realizadoPorID INT NOT NULL,
-
-    -- Qué campo cambió: 'rol', 'estado', 'curso'
-    campo VARCHAR(50) NOT NULL,
-
-    -- Valores anterior y nuevo (nombres legibles, ej: 'Alumno', 'Activo', '4to B/F')
-    valorAnterior VARCHAR(255) NULL,
-    valorNuevo VARCHAR(255) NULL,
-
-    comentario TEXT NULL,
-
-    fechaDeCreacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT FK_HistorialCuenta_Cuenta
-        FOREIGN KEY (cuentaID)
-        REFERENCES Cuenta(ID)
-        ON UPDATE CASCADE
-        ON DELETE CASCADE,
-
-    CONSTRAINT FK_HistorialCuenta_RealizadoPor
-        FOREIGN KEY (realizadoPorID)
-        REFERENCES Cuenta(ID)
-        ON UPDATE CASCADE
-        ON DELETE RESTRICT
+        REFERENCES EstadoCuenta(ID)
 );
 
 
@@ -102,7 +73,7 @@ CREATE TABLE Alumno (
 
 
 -- =========================================================
--- 4. CURSO
+-- 5. CURSO
 -- =========================================================
 
 CREATE TABLE Curso (
@@ -116,7 +87,7 @@ CREATE TABLE Curso (
 
 
 -- =========================================================
--- 5. ALUMNO - CURSO
+-- 6. ALUMNO - CURSO
 -- =========================================================
 
 CREATE TABLE AlumnoCurso (
@@ -142,32 +113,23 @@ CREATE TABLE AlumnoCurso (
 
 
 -- =========================================================
--- 6. ASIGNATURA
+-- 7. ASIGNATURA
 -- =========================================================
 
 CREATE TABLE Asignatura (
+
     ID INT AUTO_INCREMENT PRIMARY KEY,
     Nombre VARCHAR(100) NOT NULL UNIQUE
 );
 
 
 -- =========================================================
--- 7. ESTADO
+-- 8. ESTADO
 -- =========================================================
 
 CREATE TABLE Estado (
     ID INT AUTO_INCREMENT PRIMARY KEY,
     estado VARCHAR(50) NOT NULL UNIQUE
-);
-
-
--- =========================================================
--- 8. CLASIFICACION
--- =========================================================
-
-CREATE TABLE Clasificacion (
-    ID INT AUTO_INCREMENT PRIMARY KEY,
-    Clasificacion VARCHAR(100) NOT NULL UNIQUE
 );
 
 
@@ -182,14 +144,14 @@ CREATE TABLE Novedad (
     imagen VARCHAR(500) NULL,
     cuentaID INT NOT NULL,
     fecha_publicacion DATETIME NULL,
-    asignaturaID INT NOT NULL,
+    asignaturaID INT NULL,
     estadoID INT NOT NULL,
     comentarioAdmin TEXT NULL,
     fechaDeCreacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT FK_Novedad_Cuenta
         FOREIGN KEY (cuentaID)
-        REFERENCES cuenta(ID)
+        REFERENCES Cuenta(ID)
         ON UPDATE CASCADE
         ON DELETE RESTRICT,
 
@@ -207,8 +169,9 @@ CREATE TABLE Novedad (
 );
 
 
+
 -- =========================================================
--- 10. NOVEDADES - CURSOS
+-- 11. NOVEDADES - CURSOS
 -- =========================================================
 
 CREATE TABLE NovedadesCursos (
@@ -232,7 +195,7 @@ CREATE TABLE NovedadesCursos (
 
 
 -- =========================================================
--- 11. EVENTO
+-- 12. EVENTO
 -- =========================================================
 
 CREATE TABLE Evento (
@@ -242,14 +205,14 @@ CREATE TABLE Evento (
     cuentaID INT NOT NULL,
     fecha_publicacion DATETIME NULL,
     acceso VARCHAR(50) NULL,
-    asignaturaID INT NOT NULL,
+    asignaturaID INT NULL,
     estadoID INT NOT NULL,
     comentarioAdmin TEXT NULL,
     fechaDeCreacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT FK_Evento_Cuenta
         FOREIGN KEY (cuentaID)
-        REFERENCES cuenta(ID)
+        REFERENCES Cuenta(ID)
         ON UPDATE CASCADE
         ON DELETE RESTRICT,
 
@@ -267,8 +230,10 @@ CREATE TABLE Evento (
 );
 
 
+
+
 -- =========================================================
--- 12. EVENTOS - CURSOS
+-- 13. EVENTOS - CURSOS
 -- =========================================================
 
 CREATE TABLE EventosCursos (
@@ -292,106 +257,15 @@ CREATE TABLE EventosCursos (
 
 
 -- =========================================================
--- 13. MATERIAL
--- =========================================================
-
-CREATE TABLE Material (
-    ID INT AUTO_INCREMENT PRIMARY KEY,
-    Titulo VARCHAR(200) NOT NULL,
-    descripcion TEXT NULL,
-    archivo VARCHAR(500) NOT NULL,
-    cuentaID INT NOT NULL,
-    fecha_publicacion DATETIME NULL,
-    asignaturaID INT NOT NULL,
-    clasificacionID INT NOT NULL,
-    estadoID INT NOT NULL,
-    fechaDeCreacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT FK_Material_Cuenta
-        FOREIGN KEY (cuentaID)
-        REFERENCES Cuenta(ID)
-        ON UPDATE CASCADE
-        ON DELETE RESTRICT,
-
-    CONSTRAINT FK_Material_Asignatura
-        FOREIGN KEY (asignaturaID)
-        REFERENCES Asignatura(ID)
-        ON UPDATE CASCADE
-        ON DELETE RESTRICT,
-
-    CONSTRAINT FK_Material_Clasificacion
-        FOREIGN KEY (clasificacionID)
-        REFERENCES Clasificacion(ID)
-        ON UPDATE CASCADE
-        ON DELETE RESTRICT,
-
-    CONSTRAINT FK_Material_Estado
-        FOREIGN KEY (estadoID)
-        REFERENCES Estado(ID)
-        ON UPDATE CASCADE
-        ON DELETE RESTRICT
-);
-
-
--- =========================================================
--- 14. MATERIAL - CURSOS
--- =========================================================
-
-CREATE TABLE MaterialCursos (
-    MaterialID INT NOT NULL,
-    CursoID INT NOT NULL,
-
-    PRIMARY KEY (MaterialID, CursoID),
-
-    CONSTRAINT FK_MaterialCursos_Material
-        FOREIGN KEY (MaterialID)
-        REFERENCES Material(ID)
-        ON UPDATE CASCADE
-        ON DELETE CASCADE,
-
-    CONSTRAINT FK_MaterialCursos_Curso
-        FOREIGN KEY (CursoID)
-        REFERENCES Curso(ID)
-        ON UPDATE CASCADE
-        ON DELETE CASCADE
-);
-
-
--- =========================================================
--- 14b. MATERIAL - ASIGNATURAS (múltiples asignaturas por material)
--- =========================================================
-
-CREATE TABLE MaterialAsignaturas (
-    MaterialID INT NOT NULL,
-    AsignaturaID INT NOT NULL,
-
-    PRIMARY KEY (MaterialID, AsignaturaID),
-
-    CONSTRAINT FK_MaterialAsignaturas_Material
-        FOREIGN KEY (MaterialID)
-        REFERENCES Material(ID)
-        ON UPDATE CASCADE
-        ON DELETE CASCADE,
-
-    CONSTRAINT FK_MaterialAsignaturas_Asignatura
-        FOREIGN KEY (AsignaturaID)
-        REFERENCES Asignatura(ID)
-        ON UPDATE CASCADE
-        ON DELETE CASCADE
-);
-
-
--- =========================================================
--- 15. HISTORIAL
+-- 14. HISTORIAL (contenido)
 -- =========================================================
 
 CREATE TABLE Historial (
     ID INT AUTO_INCREMENT PRIMARY KEY,
 
-    -- Solo uno de estos tres campos debe tener valor
+    -- Solo uno de estos dos campos debe tener valor
     NovedadID INT NULL,
     EventoID INT NULL,
-    MaterialID INT NULL,
 
     estadoAnteriorID INT NOT NULL,
     estadoNuevoID INT NOT NULL,
@@ -408,12 +282,6 @@ CREATE TABLE Historial (
     CONSTRAINT FK_Historial_Evento
         FOREIGN KEY (EventoID)
         REFERENCES Evento(ID)
-        ON UPDATE CASCADE
-        ON DELETE CASCADE,
-
-    CONSTRAINT FK_Historial_Material
-        FOREIGN KEY (MaterialID)
-        REFERENCES Material(ID)
         ON UPDATE CASCADE
         ON DELETE CASCADE,
 
@@ -438,15 +306,42 @@ CREATE TABLE Historial (
     CONSTRAINT CK_Historial_UnSoloContenido
         CHECK (
             (NovedadID IS NOT NULL) +
-            (EventoID IS NOT NULL) +
-            (MaterialID IS NOT NULL) = 1
+            (EventoID IS NOT NULL) = 1
         )
 );
 
+
 -- =========================================================
--- 16. TIPO NOTIFICACION
+-- 18. HISTORIAL CUENTA
 -- =========================================================
 
+CREATE TABLE HistorialCuenta (
+    ID INT AUTO_INCREMENT PRIMARY KEY,
+    cuentaID INT NOT NULL,
+    realizadoPorID INT NOT NULL,
+    campo VARCHAR(50) NOT NULL,
+    valorAnterior TEXT NULL,
+    valorNuevo TEXT NULL,
+    comentario TEXT NULL,
+    fechaDeCreacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT FK_HistorialCuenta_Cuenta
+        FOREIGN KEY (cuentaID)
+        REFERENCES Cuenta(ID)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+
+    CONSTRAINT FK_HistorialCuenta_RealizadoPor
+        FOREIGN KEY (realizadoPorID)
+        REFERENCES Cuenta(ID)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
+);
+
+
+-- =========================================================
+-- 19. TIPO NOTIFICACION
+-- =========================================================
 
 CREATE TABLE tipoNotificacion (
     ID INT AUTO_INCREMENT PRIMARY KEY,
@@ -454,7 +349,7 @@ CREATE TABLE tipoNotificacion (
 );
 
 -- =========================================================
--- 17. NOTIFICACION
+-- 20. NOTIFICACION
 -- =========================================================
 
 CREATE TABLE Notificacion (
@@ -479,15 +374,44 @@ CREATE TABLE Notificacion (
 );
 
 -- =========================================================
--- 18. INSERTAR DATOS
+-- 21. EMPRESAS
 -- =========================================================
 
-INSERT INTO tipoNotificacion (Tipo)
+CREATE TABLE estadoEmpresa (
+    ID INT AUTO_INCREMENT PRIMARY KEY,
+    estado VARCHAR(50) NOT NULL UNIQUE
+);
+
+CREATE TABLE Empresas (
+    ID INT AUTO_INCREMENT PRIMARY KEY,
+    Nombre VARCHAR(150) NOT NULL,
+    Descripcion TEXT,
+    imagen VARCHAR(500),
+    enlaceExterno VARCHAR(500),
+    estadoEmpresaID INT NOT NULL,
+
+    CONSTRAINT FK_Empresas_Estado
+        FOREIGN KEY (estadoEmpresaID)
+        REFERENCES estadoEmpresa(ID)
+);
+
+-- =========================================================
+-- 22. INSERTAR DATOS
+-- =========================================================
+
+-- Rol y EstadoCuenta primero (Cuenta depende de ambos)
+INSERT INTO Rol (Nombre, NivelDeAcceso)
 VALUES
-    ('Aprobación'),
-    ('Devolución'),
-    ('Eliminación'),
-    ('Nueva publicación');
+    ('Administrador', 3),
+    ('Docente', 2),
+    ('Alumno', 1);
+
+INSERT INTO EstadoCuenta (estado)
+VALUES
+    ('Pendiente'),
+    ('Activo'),
+    ('Rechazado'),
+    ('Suspendido');
 
 INSERT INTO Estado (estado)
 VALUES
@@ -496,48 +420,70 @@ VALUES
     ('Publicado'),
     ('Eliminado');
 
-INSERT INTO Rol (Nombre, NivelDeAcceso)
+INSERT INTO tipoNotificacion (Tipo)
 VALUES
-    ('Administrador', 3),
-    ('Docente', 2),
-    ('Alumno', 1);
+    ('Aprobación'),
+    ('Devolución'),
+    ('Eliminación'),
+    ('Nueva publicación');
 
-INSERT INTO Clasificacion (Clasificacion)
+INSERT INTO estadoEmpresa (estado)
 VALUES
-    ('Cuadernillo'),
-    ('Material de clase'),
-    ('Material de lectura'),
-    ('Libro');
-    
-INSERT INTO EstadoCuenta (estado)
-VALUES
-    ('Pendiente'),
-    ('Activo'),
-    ('Rechazado'),
-    ('Suspendido');
+    ('Activa'),
+    ('Inactiva'),
+    ('Dada de baja');
 
 INSERT INTO Curso (anio, division)
 VALUES
     ('1', 'A/S'),
-    ('2', 'A/S'),
-    ('3', 'A/S'),
-    ('4', 'A/S'),
-    ('5', 'A/S'),
-    ('6', 'A/S'),
-    ('7', 'A/S'),
     ('1', 'B/F'),
+    ('2', 'A/S'),
     ('2', 'B/F'),
+    ('3', 'A/S'),
     ('3', 'B/F'),
+    ('4', 'A/S'),
     ('4', 'B/F'),
+    ('5', 'A/S'),
     ('5', 'B/F'),
+    ('6', 'A/S'),
     ('6', 'B/F'),
-    ('7', 'B/F'),
--- Empresas para pasantías
-INSERT INTO Empresas (Nombre, Descripcion, imagen, estadoEmpresaID)
+    ('7', 'A/S'),
+    ('7', 'B/F');
+
+-- Asignaturas de la escuela PRoA (deben coincidir con los IDs usados en el frontend)
+INSERT INTO Asignatura (Nombre)
 VALUES
-    ('Mercado Libre', 'E-commerce y desarrollo de software financiero a escala regional.', 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&h=400&fit=crop&auto=format', 1),
-    ('Globant', 'Soluciones de transformación digital, inteligencia artificial y desarrollo cloud.', 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=600&h=400&fit=crop&auto=format', 1),
-    ('Accenture', 'Consultoría tecnológica, arquitectura de software y ciberseguridad.', 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&h=400&fit=crop&auto=format', 1),
-    ('Telecom Argentina', 'Infraestructura de telecomunicaciones, redes y servicios digitales.', 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&h=400&fit=crop&auto=format', 1),
-    ('ZF Argentina (San Francisco)', 'Sistemas avanzados de manufactura automotriz e integración industrial 4.0.', 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&h=400&fit=crop&auto=format', 1),
-    ('Macser IT', 'Desarrollo de software a medida, aplicaciones web y móviles para empresas.', 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&h=400&fit=crop&auto=format', 1);
+    ('Inglés'),                      -- ID 1
+    ('TIA'),                         -- ID 2
+    ('Dibujo Técnico'),              -- ID 3
+    ('Educación Tecnológica'),       -- ID 4
+    ('Club de Ciencias'),            -- ID 5
+    ('Taller de Laboratorio'),       -- ID 6
+    ('Programación'),                -- ID 7
+    ('Marco Jurídico'),              -- ID 8
+    ('Economía'),                    -- ID 9
+    ('Emprendimientos'),             -- ID 10
+    ('FVT'),                         -- ID 11
+    ('Ciudadanía y Política'),       -- ID 12
+    ('FAT'),                         -- ID 13
+    ('Ciudadanía y Participación'),  -- ID 14
+    ('Lengua y Literatura'),         -- ID 15
+    ('Química'),                     -- ID 16
+    ('Biología'),                    -- ID 17
+    ('Física'),                      -- ID 18
+    ('Matemática'),                  -- ID 19
+    ('Análisis Matemático'),         -- ID 20
+    ('Lógica Matemática'),           -- ID 21
+    ('Club de Arte'),                -- ID 22
+    ('Artes visuales'),              -- ID 23
+    ('Música');                      -- ID 24
+
+-- Empresas para pasantías
+INSERT INTO Empresas (Nombre, Descripcion, imagen, enlaceExterno, estadoEmpresaID)
+VALUES
+    ('Mercado Libre', 'E-commerce y desarrollo de software financiero a escala regional.', 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&h=400&fit=crop&auto=format', 'https://www.mercadolibre.com.ar', 1),
+    ('Globant', 'Soluciones de transformación digital, inteligencia artificial y desarrollo cloud.', 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=600&h=400&fit=crop&auto=format', 'https://www.globant.com', 1),
+    ('Accenture', 'Consultoría tecnológica, arquitectura de software y ciberseguridad.', 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&h=400&fit=crop&auto=format', 'https://www.accenture.com/ar-es', 1),
+    ('Telecom Argentina', 'Infraestructura de telecomunicaciones, redes y servicios digitales.', 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&h=400&fit=crop&auto=format', 'https://www.telecom.com.ar', 1),
+    ('ZF Argentina (San Francisco)', 'Sistemas avanzados de manufactura automotriz e integración industrial 4.0.', 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&h=400&fit=crop&auto=format', 'https://www.zf.com', 1),
+    ('Macser IT', 'Desarrollo de software a medida, aplicaciones web y móviles para empresas.', 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=600&h=400&fit=crop&auto=format', 'https://www.macser.com.ar', 1);

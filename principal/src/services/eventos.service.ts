@@ -1,6 +1,12 @@
-import type { EventoBackendItem } from "@/types";
+import { EVENTOS } from "@/mocks/eventos.mock";
+import type { Evento, EventoBackendItem } from "@/types";
 
 const BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
+
+/** Lista de eventos de agenda local (mock) */
+export async function fetchEventos(): Promise<Evento[]> {
+  return EVENTOS;
+}
 
 function authHeaders(token?: string | null): HeadersInit {
   const t = token || (typeof window !== "undefined" ? localStorage.getItem("proa_token") : null);

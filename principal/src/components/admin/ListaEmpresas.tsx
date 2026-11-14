@@ -8,6 +8,15 @@ import {
   cambiarEstadoEmpresa,
 } from "@/services/empresas.service";
 
+function normalizeUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
+}
+
 export default function ListaEmpresas() {
   const { token } = useAuth();
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
@@ -21,6 +30,7 @@ export default function ListaEmpresas() {
   const [nombre, setNombre] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [imagen, setImagen] = useState("");
+  const [enlaceExterno, setEnlaceExterno] = useState("");
   const [estadoEmpresaID, setEstadoEmpresaID] = useState<number>(1);
   const [guardando, setGuardando] = useState(false);
   const [errorModal, setErrorModal] = useState<string | null>(null);
@@ -44,6 +54,7 @@ export default function ListaEmpresas() {
     setNombre("");
     setDescripcion("");
     setImagen("");
+    setEnlaceExterno("");
     setEstadoEmpresaID(1);
     setErrorModal(null);
     setModalAbierto(true);
@@ -54,6 +65,7 @@ export default function ListaEmpresas() {
     setNombre(empresa.Nombre);
     setDescripcion(empresa.Descripcion || "");
     setImagen(empresa.imagen || "");
+    setEnlaceExterno(empresa.enlaceExterno || "");
     setEstadoEmpresaID(empresa.estadoEmpresaID);
     setErrorModal(null);
     setModalAbierto(true);
@@ -69,14 +81,17 @@ export default function ListaEmpresas() {
     setGuardando(true);
     setErrorModal(null);
 
+    const enlaceNormalizado = enlaceExterno.trim() ? normalizeUrl(enlaceExterno) : null;
+
     if (empresaEditando) {
       // Editar
       const res = await actualizarEmpresa(
         empresaEditando.ID,
         {
           Nombre: nombre.trim(),
-          Descripcion: descripcion.trim() || undefined,
-          imagen: imagen.trim() || undefined,
+          Descripcion: descripcion.trim() || null,
+          imagen: imagen.trim() || null,
+          enlaceExterno: enlaceNormalizado,
         },
         token
       );
@@ -98,6 +113,7 @@ export default function ListaEmpresas() {
           Nombre: nombre.trim(),
           Descripcion: descripcion.trim() || undefined,
           imagen: imagen.trim() || undefined,
+          enlaceExterno: enlaceNormalizado || undefined,
           estadoEmpresaID,
         },
         token
@@ -131,7 +147,8 @@ export default function ListaEmpresas() {
 
     const matchBusqueda =
       emp.Nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-      (emp.Descripcion && emp.Descripcion.toLowerCase().includes(busqueda.toLowerCase()));
+      (emp.Descripcion && emp.Descripcion.toLowerCase().includes(busqueda.toLowerCase())) ||
+      (emp.enlaceExterno && emp.enlaceExterno.toLowerCase().includes(busqueda.toLowerCase()));
 
     return matchEstado && matchBusqueda;
   });
@@ -160,7 +177,7 @@ export default function ListaEmpresas() {
           <div className="w-full sm:w-64">
             <input
               type="text"
-              placeholder="Buscar por nombre o descripción..."
+              placeholder="Buscar por nombre, descripción o enlace..."
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
               className="w-full text-xs px-3.5 py-2 rounded-md bg-white border border-[#8B8C89]/30 text-[#0d1b2a] focus:outline-none focus:border-[#6096BA]"
@@ -216,7 +233,32 @@ export default function ListaEmpresas() {
                       )}
                     </td>
                     <td className="p-3.5 font-bold text-[#274C77] text-sm whitespace-nowrap">
-                      {emp.Nombre}
+                      <div className="flex items-center gap-1.5">
+                        <span>{emp.Nombre}</span>
+                        {emp.enlaceExterno && (
+                          <a
+                            href={emp.enlaceExterno}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={`Visitar: ${emp.enlaceExterno}`}
+                            className="text-[#6096BA] hover:text-[#274C77] transition-colors"
+                          >
+                            <svg className="w-3.5 h-3.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                          </a>
+                        )}
+                      </div>
+                      {emp.enlaceExterno && (
+                        <a
+                          href={emp.enlaceExterno}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] text-[#6096BA] hover:underline font-normal block truncate max-w-[200px]"
+                        >
+                          {emp.enlaceExterno}
+                        </a>
+                      )}
                     </td>
                     <td className="p-3.5 text-slate-600 max-w-xs truncate">
                       {emp.Descripcion || <span className="text-[#8B8C89] italic">Sin descripción</span>}
@@ -327,12 +369,26 @@ export default function ListaEmpresas() {
               <div>
                 <label className="block text-xs font-bold text-[#274C77] mb-1">URL de Logo / Imagen</label>
                 <input
-                  type="url"
+                  type="text"
                   value={imagen}
                   onChange={(e) => setImagen(e.target.value)}
                   placeholder="https://ejemplo.com/logo.jpg"
                   className="w-full text-xs p-2.5 rounded border border-[#8B8C89]/30 focus:outline-none focus:border-[#6096BA] text-[#0d1b2a]"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#274C77] mb-1">Enlace a Página Externa (Web de la Empresa)</label>
+                <input
+                  type="text"
+                  value={enlaceExterno}
+                  onChange={(e) => setEnlaceExterno(e.target.value)}
+                  placeholder="https://www.empresa.com o www.empresa.com"
+                  className="w-full text-xs p-2.5 rounded border border-[#8B8C89]/30 focus:outline-none focus:border-[#6096BA] text-[#0d1b2a]"
+                />
+                <p className="text-[10px] text-[#8B8C89] mt-0.5">
+                  Al hacer clic en el nombre de la empresa en la sección de pasantías, redirigirá a este enlace.
+                </p>
               </div>
 
               <div>

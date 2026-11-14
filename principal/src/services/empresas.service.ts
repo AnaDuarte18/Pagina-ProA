@@ -46,7 +46,13 @@ export async function fetchAdminEmpresas(token: string | null): Promise<Empresa[
  * Crea una nueva empresa de pasantías (POST /empresas).
  */
 export async function crearEmpresa(
-  datos: { Nombre: string; Descripcion?: string; imagen?: string; estadoEmpresaID?: number },
+  datos: {
+    Nombre: string;
+    Descripcion?: string | null;
+    imagen?: string | null;
+    enlaceExterno?: string | null;
+    estadoEmpresaID?: number;
+  },
   token: string | null
 ): Promise<{ success: boolean; data?: Empresa; error?: string }> {
   try {
@@ -73,7 +79,12 @@ export async function crearEmpresa(
  */
 export async function actualizarEmpresa(
   id: number,
-  datos: { Nombre?: string; Descripcion?: string; imagen?: string },
+  datos: {
+    Nombre?: string;
+    Descripcion?: string | null;
+    imagen?: string | null;
+    enlaceExterno?: string | null;
+  },
   token: string | null
 ): Promise<{ success: boolean; data?: Empresa; error?: string }> {
   try {

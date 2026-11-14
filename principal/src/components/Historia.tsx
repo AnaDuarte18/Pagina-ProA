@@ -4,11 +4,12 @@ import type { HitoHistoria } from "@/types";
 import proa2014 from "@/imports/2014.jpg";
 import proa2019 from "@/imports/2019.jpg";
 import proa2024 from "@/imports/2024.jpg";
+import proa2026 from "@/imports/2026.png";
 
 
 const HITOS_HISTORIA: HitoHistoria[] = [
   {
-    periodo: "2014 — Los Comienzos",
+    periodo: "2014",
     titulo: "Nacimiento de un Modelo Pionero",
     subtitulo: "La primera escuela PRoA",
     texto:
@@ -19,8 +20,8 @@ const HITOS_HISTORIA: HitoHistoria[] = [
     pieDeFoto: "Docentes en reunión en un aula de la escuela primaria Dr. Raúl Villafañe prestada a la escuela ProA.",
   },
   {
-    periodo: "2019 — Nuestro Propio Espacio",
-    titulo: "Innaguración de nuestro edificio",
+    periodo: "2019",
+    titulo: "Nuestro Propio Espacio",
     subtitulo: "Los frutos del esfuerzo y la lucha comunitaria",
     texto:
       "Luego de años de reclamos por un espacio propio para poder dar clases y convivir como escuela, en el año 2019 se innagura el edificio de la Escuela Experimental ProA Técnica. Gracias al tremendo esfuerzo de la comunidad y de la cooperadora, quienes ya se habían encargado de asegurarse que los alumnos cuenten con computadoras para enfocarse en su especialidad, este pudo contar con comodidades como televisores para cada aula y aires acondicionados.",
@@ -29,16 +30,27 @@ const HITOS_HISTORIA: HitoHistoria[] = [
     imagenAlt: "Docentes en frente del edificio de la institución",
     pieDeFoto: "Docentes en frente del edificio de la institución por el que tanto lucharon.",
   },
-  {
-    periodo: "2024 — Ahora sí",
+    {
+    periodo: "2024",
     titulo: "10° Aniversario y muchos cambios",
     subtitulo: "Despedida a Alicia Ferreyra como directora y bienvenida a Natalí Pesaresi",
     texto:
-      "Este año nos tocó despedir a quien había estado a la cabeza de esta maravillosa escuela durante todos estos años: Alicia Ferreyra, quien dejaría esta comunidad en manos de Natalí Pesaresi, nuestra formidable directora. Pero este no fue el único cambio que llegó con el décimo aniversario de la institución, ya que la comunidad educativa también celebró la inauguración del nuevo tramo del edificio en San Francisco, permitiendonos encontrarnos por primera vez todos juntos cursando en nuestra propia escuela, con dos plantas y ocho nuevas aulas. Estas pronto serían equipadas por la cooperadora con sus propios aires acondicioanados y televisores",
+      "Este año nos tocó despedir a quien había estado a la cabeza de esta maravillosa escuela durante todos estos años: Alicia Ferreyra, quien dejaría esta comunidad en manos de Natalí Pesaresi, nuestra formidable directora. Pero este no fue el único cambio que llegó con el décimo aniversario de la institución, ya que la comunidad educativa también celebró la inauguración del nuevo tramo del edificio en San Francisco, permitiendonos encontrarnos por primera vez todos juntos cursando en nuestra propia escuela, con dos plantas y ocho nuevas aulas. Estas pronto serían equipadas por la cooperadora con sus propios aires acondicioanados y televisores.",
     imagen:
       proa2024,
     imagenAlt: "Natalí Pesaresi recibiendo un ramo de flores como felicitación por su nuevo puesto",
     pieDeFoto: "Natalí Pesaresi, nuestra formidable directora.",
+  },
+  {
+    periodo: "2026",
+    titulo: "Siempre Avanzando",
+    subtitulo: "Compra de nuevos insumos y mejoras en la conectividad",
+    texto:
+      "Continuamos mejorando para darle a nuestros estudiantes la escuela que se merecen. Durante este año la cooperadora se encargó de equipar la escuela con nuevas computadoras de la mejor calidad, además de la integración de Starlink como servicio de internet.",
+    imagen:
+      proa2026,
+    imagenAlt: "Computadora de la escuela usada para programar un robot minisumo.",
+    pieDeFoto: "Computadora de la escuela usada para programar un robot minisumo.",
   },
 ];
 

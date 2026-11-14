@@ -1,6 +1,12 @@
-import type { NovedadBackendItem } from "@/types";
+import { NOTICIAS } from "@/mocks/noticias.mock";
+import type { Noticia, NovedadBackendItem } from "@/types";
 
 const BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
+
+/** Noticias mock para useNoticias */
+export async function fetchNoticias(): Promise<Noticia[]> {
+  return NOTICIAS;
+}
 
 /** Todas las novedades publicadas (estadoID = 3) */
 export async function fetchNovedadesPublicadas(): Promise<NovedadBackendItem[]> {

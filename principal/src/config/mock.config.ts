@@ -8,7 +8,6 @@
  *
  *   VITE_MOCK_NOTICIAS=false
  *   VITE_MOCK_EVENTOS=false
- *   VITE_MOCK_MATERIALES=false
  *   VITE_MOCK_MATERIAS=false
  *
  * El valor de .env tiene prioridad sobre el que está hardcodeado acá.
@@ -28,9 +27,6 @@ export const MOCK_CONFIG = {
 
   /** GET /api/eventos */
   eventos: envFlag("VITE_MOCK_EVENTOS", true),
-
-  /** GET /api/materiales */
-  materiales: envFlag("VITE_MOCK_MATERIALES", true),
 
   /** GET /api/materias */
   materias: envFlag("VITE_MOCK_MATERIAS", true),

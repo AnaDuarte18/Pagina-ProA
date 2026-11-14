@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import logoProa from "@/imports/image.png";
+import proaEdificio from "@/imports/proaEdificio.jpg";
 import { fetchEventosPublicados } from "@/services/eventos.service";
 import type { EventoBackendItem } from "@/types";
 
@@ -117,7 +118,7 @@ export default function Calendario() {
         {/* Panel con imagen y frase */}
         <div className="relative rounded-sm overflow-hidden bg-[#0d1b2a] h-full min-h-[420px] flex flex-col justify-between">
           <img
-            src="https://images.unsplash.com/photo-1613896527026-f195d5c818ed?w=800&h=500&fit=crop&auto=format"
+            src={proaEdificio}
             alt="Edificio PRoA San Francisco"
             className="absolute inset-0 w-full h-full object-cover opacity-30"
           />
@@ -126,10 +127,7 @@ export default function Calendario() {
               <img src={logoProa} alt="Logo PRoA" className="h-20 w-20 object-contain opacity-90" />
             </div>
             <p className="font-display text-2xl font-bold text-white leading-snug">
-              "El código que escribís hoy<br />es el producto de mañana."
-            </p>
-            <p className="font-mono-code text-[#8B8C89] text-xs mt-3">
-              — Dirección pedagógica, PRoA San Francisco
+              "Una Vez ProA<br />Siempre ProA"
             </p>
           </div>
         </div>

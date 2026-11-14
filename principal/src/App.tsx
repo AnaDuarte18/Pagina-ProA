@@ -6,7 +6,6 @@ import OrientacionPrincipal from "@/components/OrientacionPrincipal";
 import Publicaciones from "@/components/Publicaciones";
 import Calendario from "@/components/Calendario";
 import Materias from "@/components/Materias";
-import Material from "@/components/Material";
 import Footer from "@/components/Footer";
 import LoginModal from "@/components/LoginModal";
 import BannerAviso from "@/components/BannerAviso";
@@ -162,18 +161,6 @@ function PaginaEventos() {
   );
 }
 
-function PaginaMaterial() {
-  const { user } = useAuth();
-  const isAlumnoSinAcceso =
-    user?.roleId === 3 &&
-    (user?.estadoCuentaId === 1 || user?.estadoCuentaId === 3 || user?.estadoCuentaId === 4);
-  const tieneAccesoCompleto = !!user && !isAlumnoSinAcceso;
-
-  if (!tieneAccesoCompleto) return <Navigate to="/" replace />;
-
-  return <Material />;
-}
-
 function PaginaContacto() {
   return (
     <>
@@ -229,7 +216,6 @@ export function pageToPath(page: string): string {
     "Actividades": "/eventos",
     "Novedades": "/novedades",
     "Noticias": "/novedades",
-    "Material": "/material",
     "Contacto": "/contacto",
     "Nuevo": "/nuevo",
     "Administrar": "/administrar",
@@ -250,7 +236,6 @@ function AppRoutes() {
         <Route path="/historia" element={<Historia />} />
         <Route path="/eventos" element={<PaginaEventos />} />
         <Route path="/actividades" element={<Navigate to="/eventos" replace />} />
-        <Route path="/material" element={<PaginaMaterial />} />
         <Route path="/contacto" element={<PaginaContacto />} />
         <Route path="/nuevo" element={<PaginaNuevo />} />
         <Route path="/administrar" element={<PaginaAdministrar />} />

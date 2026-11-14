@@ -1005,13 +1005,13 @@ app.get('/cuentas/:id/historial', requireAuth, requireRole(ROLES.ADMINISTRADOR),
  * Registra un cambio de estado en la tabla Historial.
  */
 async function registrarHistorialContenido(conn, {
-  novedadID = null, eventoID = null, materialID = null,
+  novedadID = null, eventoID = null,
   estadoAnteriorID, estadoNuevoID, cuentaID, comentario = null,
 }) {
   await conn.query(
-    `INSERT INTO Historial (NovedadID, EventoID, MaterialID, estadoAnteriorID, estadoNuevoID, cuentaID, comentario)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [novedadID, eventoID, materialID, estadoAnteriorID, estadoNuevoID, cuentaID, comentario]
+    `INSERT INTO Historial (NovedadID, EventoID, estadoAnteriorID, estadoNuevoID, cuentaID, comentario)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [novedadID, eventoID, estadoAnteriorID, estadoNuevoID, cuentaID, comentario]
   );
 }
 
@@ -1208,6 +1208,7 @@ app.patch('/novedades/:id', requireAuth, requireRole(ROLES.ADMINISTRADOR, ROLES.
     if (titulo !== undefined) { campos.push('titulo = ?'); params.push(titulo); }
     if (cuerpo !== undefined) { campos.push('cuerpo = ?'); params.push(cuerpo); }
     if (imagen !== undefined) { campos.push('imagen = ?'); params.push(imagen); }
+    if (enlaceExterno !== undefined) { campos.push('enlaceExterno = ?'); params.push(enlaceExterno); }
     if (asignaturaID !== undefined) { campos.push('asignaturaID = ?'); params.push(asignaturaID); }
 
     if (req.cuenta.rolID === ROLES.DOCENTE && novedad.estadoID === ESTADOS_CONTENIDO.DEVUELTO) {
@@ -1644,288 +1645,6 @@ app.delete('/eventos/:id', requireAuth, requireRole(ROLES.ADMINISTRADOR), async 
   }
 });
 
-// ─────────────────────────────────────────────────────────────
-// MATERIALES
-// ─────────────────────────────────────────────────────────────
-
-/**
- * GET /materiales
- */
-app.get('/materiales', requireAuth, async (req, res) => {
-  try {
-    const cuenta = req.userJwt;
-
-    if (cuenta.roleId === ROLES.ADMINISTRADOR) {
-      const [rows] = await pool.query(
-        `SELECT m.ID, m.Titulo, m.descripcion, m.archivo, m.cuentaID,
-                c.NombreApellido AS autorNombre,
-                m.fecha_publicacion, m.clasificacionID, cl.Clasificacion AS clasificacionNombre,
-                m.estadoID, es.estado AS estadoNombre, m.fechaDeCreacion,
-                GROUP_CONCAT(DISTINCT mc.CursoID) AS cursoIDs,
-                GROUP_CONCAT(DISTINCT ma.AsignaturaID) AS asignaturaIDs
-         FROM Material m
-         LEFT JOIN Cuenta c ON m.cuentaID = c.ID
-         LEFT JOIN Clasificacion cl ON m.clasificacionID = cl.ID
-         LEFT JOIN Estado es ON m.estadoID = es.ID
-         LEFT JOIN MaterialCursos mc ON m.ID = mc.MaterialID
-         LEFT JOIN MaterialAsignaturas ma ON m.ID = ma.MaterialID
-         WHERE m.estadoID != ?
-         GROUP BY m.ID
-         ORDER BY m.fechaDeCreacion DESC`,
-        [ESTADOS_CONTENIDO.ELIMINADO]
-      );
-      return res.json(rows);
-    }
-
-    if (cuenta.roleId === ROLES.DOCENTE) {
-      const [rows] = await pool.query(
-        `SELECT m.ID, m.Titulo, m.descripcion, m.archivo, m.cuentaID,
-                c.NombreApellido AS autorNombre,
-                m.fecha_publicacion, m.clasificacionID, cl.Clasificacion AS clasificacionNombre,
-                m.estadoID, es.estado AS estadoNombre, m.fechaDeCreacion,
-                GROUP_CONCAT(DISTINCT mc.CursoID) AS cursoIDs,
-                GROUP_CONCAT(DISTINCT ma.AsignaturaID) AS asignaturaIDs
-         FROM Material m
-         LEFT JOIN Cuenta c ON m.cuentaID = c.ID
-         LEFT JOIN Clasificacion cl ON m.clasificacionID = cl.ID
-         LEFT JOIN Estado es ON m.estadoID = es.ID
-         LEFT JOIN MaterialCursos mc ON m.ID = mc.MaterialID
-         LEFT JOIN MaterialAsignaturas ma ON m.ID = ma.MaterialID
-         WHERE (m.estadoID = ? OR (m.cuentaID = ? AND m.estadoID != ?))
-         GROUP BY m.ID
-         ORDER BY m.fechaDeCreacion DESC`,
-        [ESTADOS_CONTENIDO.PUBLICADO, cuenta.id, ESTADOS_CONTENIDO.ELIMINADO]
-      );
-      return res.json(rows);
-    }
-
-    // Alumno
-    const [[alumno]] = await pool.query('SELECT a.ID FROM Alumno a WHERE a.cuentaID = ?', [cuenta.id]);
-    if (!alumno) return res.json([]);
-
-    const [[cursoActual]] = await pool.query('SELECT CursoID FROM AlumnoCurso WHERE AlumnoID = ? AND fechaHasta IS NULL', [alumno.ID]);
-    const cursoID = cursoActual?.CursoID ?? null;
-
-    const [rows] = await pool.query(
-      `SELECT m.ID, m.Titulo, m.descripcion, m.archivo, m.cuentaID,
-              c.NombreApellido AS autorNombre,
-              m.fecha_publicacion, m.clasificacionID, cl.Clasificacion AS clasificacionNombre,
-              m.estadoID, m.fechaDeCreacion,
-              GROUP_CONCAT(DISTINCT ma.AsignaturaID) AS asignaturaIDs
-       FROM Material m
-       LEFT JOIN Cuenta c ON m.cuentaID = c.ID
-       LEFT JOIN Clasificacion cl ON m.clasificacionID = cl.ID
-       LEFT JOIN MaterialCursos mc ON m.ID = mc.MaterialID
-       LEFT JOIN MaterialAsignaturas ma ON m.ID = ma.MaterialID
-       WHERE m.estadoID = ?
-         AND (
-           NOT EXISTS (SELECT 1 FROM MaterialCursos WHERE MaterialID = m.ID)
-           OR (? IS NOT NULL AND mc.CursoID = ?)
-         )
-       GROUP BY m.ID
-       ORDER BY m.fechaDeCreacion DESC`,
-      [ESTADOS_CONTENIDO.PUBLICADO, cursoID, cursoID]
-    );
-    res.json(rows);
-  } catch (err) {
-    console.error('[Materiales] GET /materiales:', err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/**
- * POST /materiales
- */
-app.post('/materiales', requireAuth, requireRole(ROLES.ADMINISTRADOR, ROLES.DOCENTE), async (req, res) => {
-  const { Titulo, descripcion, archivo, clasificacionID, asignaturaIDs, cursoIDs } = req.body;
-  if (!Titulo || !archivo || !clasificacionID) return res.status(400).json({ error: 'Titulo, archivo y clasificacionID son requeridos.' });
-
-  const estadoID = estadoInicialContenido(req.cuenta.rolID);
-  const fechaPublicacion = estadoID === ESTADOS_CONTENIDO.PUBLICADO ? new Date() : null;
-
-  const conn = await pool.getConnection();
-  try {
-    await conn.beginTransaction();
-
-    const [result] = await conn.query(
-      `INSERT INTO Material (Titulo, descripcion, archivo, cuentaID, fecha_publicacion, clasificacionID, estadoID)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [Titulo, descripcion ?? null, archivo, req.userJwt.id, fechaPublicacion, clasificacionID, estadoID]
-    );
-    const materialID = result.insertId;
-
-    if (Array.isArray(asignaturaIDs) && asignaturaIDs.length > 0) {
-      const aValues = asignaturaIDs.map(aID => [materialID, aID]);
-      await conn.query('INSERT INTO MaterialAsignaturas (MaterialID, AsignaturaID) VALUES ?', [aValues]);
-    }
-
-    if (Array.isArray(cursoIDs) && cursoIDs.length > 0) {
-      const cValues = cursoIDs.map(cID => [materialID, cID]);
-      await conn.query('INSERT INTO MaterialCursos (MaterialID, CursoID) VALUES ?', [cValues]);
-    }
-
-    await registrarHistorialContenido(conn, {
-      materialID,
-      estadoAnteriorID: estadoID,
-      estadoNuevoID: estadoID,
-      cuentaID: req.userJwt.id,
-    });
-
-    if (estadoID === ESTADOS_CONTENIDO.PENDIENTE) {
-      const [admins] = await conn.query('SELECT ID FROM Cuenta WHERE rolID = ? AND estadoCuentaID = ?', [ROLES.ADMINISTRADOR, ESTADOS_CUENTA.ACTIVO]);
-      for (const admin of admins) {
-        await crearNotificacion(conn, {
-          cuentaID: admin.ID,
-          titulo: 'Nuevo material pendiente',
-          mensaje: `"${Titulo}" fue enviado por ${req.userJwt.name} y espera revisión.`,
-          tipoID: TIPOS_NOTIFICACION.NUEVA_PUBLICACION,
-        });
-      }
-    }
-
-    await conn.commit();
-    res.status(201).json({ id: materialID, estadoID, message: estadoID === ESTADOS_CONTENIDO.PUBLICADO ? 'Material publicado.' : 'Material enviado para revisión.' });
-  } catch (err) {
-    await conn.rollback();
-    console.error('[Materiales] POST /materiales:', err);
-    res.status(500).json({ error: err.message });
-  } finally {
-    conn.release();
-  }
-});
-
-/**
- * PATCH /materiales/:id
- */
-app.patch('/materiales/:id', requireAuth, requireRole(ROLES.ADMINISTRADOR, ROLES.DOCENTE), async (req, res) => {
-  const { Titulo, descripcion, archivo, clasificacionID, asignaturaIDs, cursoIDs } = req.body;
-
-  const conn = await pool.getConnection();
-  try {
-    await conn.beginTransaction();
-
-    const [[material]] = await conn.query(
-      'SELECT ID, cuentaID, estadoID FROM Material WHERE ID = ? AND estadoID != ?',
-      [req.params.id, ESTADOS_CONTENIDO.ELIMINADO]
-    );
-    if (!material) { await conn.rollback(); conn.release(); return res.status(404).json({ error: 'Material no encontrado.' }); }
-
-    if (req.cuenta.rolID === ROLES.DOCENTE) {
-      if (material.cuentaID !== req.userJwt.id) { await conn.rollback(); conn.release(); return res.status(403).json({ error: 'Solo podés editar tu propio material.' }); }
-      if (![ESTADOS_CONTENIDO.PENDIENTE, ESTADOS_CONTENIDO.DEVUELTO].includes(material.estadoID)) { await conn.rollback(); conn.release(); return res.status(403).json({ error: 'Solo podés editar material en estado Pendiente o Devuelto.' }); }
-    }
-
-    const campos = [];
-    const params = [];
-    if (Titulo !== undefined) { campos.push('Titulo = ?'); params.push(Titulo); }
-    if (descripcion !== undefined) { campos.push('descripcion = ?'); params.push(descripcion); }
-    if (archivo !== undefined) { campos.push('archivo = ?'); params.push(archivo); }
-    if (clasificacionID !== undefined) { campos.push('clasificacionID = ?'); params.push(clasificacionID); }
-    if (req.cuenta.rolID === ROLES.DOCENTE && material.estadoID === ESTADOS_CONTENIDO.DEVUELTO) {
-      campos.push('estadoID = ?', 'comentarioAdmin = NULL');
-      params.push(ESTADOS_CONTENIDO.PENDIENTE);
-    }
-
-    if (campos.length > 0) {
-      params.push(req.params.id);
-      await conn.query(`UPDATE Material SET ${campos.join(', ')} WHERE ID = ?`, params);
-    }
-
-    if (Array.isArray(asignaturaIDs)) {
-      await conn.query('DELETE FROM MaterialAsignaturas WHERE MaterialID = ?', [req.params.id]);
-      if (asignaturaIDs.length > 0) {
-        const aValues = asignaturaIDs.map(aID => [parseInt(req.params.id), aID]);
-        await conn.query('INSERT INTO MaterialAsignaturas (MaterialID, AsignaturaID) VALUES ?', [aValues]);
-      }
-    }
-
-    if (Array.isArray(cursoIDs)) {
-      await conn.query('DELETE FROM MaterialCursos WHERE MaterialID = ?', [req.params.id]);
-      if (cursoIDs.length > 0) {
-        const cValues = cursoIDs.map(cID => [parseInt(req.params.id), cID]);
-        await conn.query('INSERT INTO MaterialCursos (MaterialID, CursoID) VALUES ?', [cValues]);
-      }
-    }
-
-    await conn.commit();
-    res.json({ message: 'Material actualizado.' });
-  } catch (err) {
-    await conn.rollback();
-    console.error('[Materiales] PATCH /materiales/:id:', err);
-    res.status(500).json({ error: err.message });
-  } finally {
-    conn.release();
-  }
-});
-
-/**
- * PATCH /materiales/:id/estado
- */
-app.patch('/materiales/:id/estado', requireAuth, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
-  const { estadoID, comentario } = req.body;
-  if (!estadoID) return res.status(400).json({ error: 'estadoID es requerido.' });
-
-  const conn = await pool.getConnection();
-  try {
-    await conn.beginTransaction();
-
-    const [[material]] = await conn.query(
-      'SELECT ID, cuentaID, Titulo, estadoID FROM Material WHERE ID = ? AND estadoID != ?',
-      [req.params.id, ESTADOS_CONTENIDO.ELIMINADO]
-    );
-    if (!material) { await conn.rollback(); conn.release(); return res.status(404).json({ error: 'Material no encontrado.' }); }
-
-    const camposUpdate = ['estadoID = ?'];
-    const paramsUpdate = [estadoID];
-    if (comentario !== undefined) { camposUpdate.push('comentarioAdmin = ?'); paramsUpdate.push(comentario); }
-    if (parseInt(estadoID) === ESTADOS_CONTENIDO.PUBLICADO) { camposUpdate.push('fecha_publicacion = NOW()'); }
-    paramsUpdate.push(req.params.id);
-
-    await conn.query(`UPDATE Material SET ${camposUpdate.join(', ')} WHERE ID = ?`, paramsUpdate);
-    await registrarHistorialContenido(conn, { materialID: material.ID, estadoAnteriorID: material.estadoID, estadoNuevoID: estadoID, cuentaID: req.userJwt.id, comentario: comentario || null });
-
-    const tipoMap = {
-      [ESTADOS_CONTENIDO.PUBLICADO]: { tipo: TIPOS_NOTIFICACION.APROBACION, titulo: 'Tu material fue aprobado', msg: `"${material.Titulo}" fue publicado.` },
-      [ESTADOS_CONTENIDO.DEVUELTO]:  { tipo: TIPOS_NOTIFICACION.DEVOLUCION, titulo: 'Tu material fue devuelto', msg: `"${material.Titulo}" requiere correcciones. ${comentario || ''}` },
-    };
-    const notif = tipoMap[parseInt(estadoID)];
-    if (notif) await crearNotificacion(conn, { cuentaID: material.cuentaID, titulo: notif.titulo, mensaje: notif.msg, tipoID: notif.tipo });
-
-    await conn.commit();
-    res.json({ message: 'Estado del material actualizado.' });
-  } catch (err) {
-    await conn.rollback();
-    console.error('[Materiales] PATCH /materiales/:id/estado:', err);
-    res.status(500).json({ error: err.message });
-  } finally {
-    conn.release();
-  }
-});
-
-/**
- * DELETE /materiales/:id
- */
-app.delete('/materiales/:id', requireAuth, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
-  const conn = await pool.getConnection();
-  try {
-    await conn.beginTransaction();
-    const [[material]] = await conn.query('SELECT ID, cuentaID, Titulo, estadoID FROM Material WHERE ID = ? AND estadoID != ?', [req.params.id, ESTADOS_CONTENIDO.ELIMINADO]);
-    if (!material) { await conn.rollback(); conn.release(); return res.status(404).json({ error: 'Material no encontrado.' }); }
-
-    await conn.query('UPDATE Material SET estadoID = ? WHERE ID = ?', [ESTADOS_CONTENIDO.ELIMINADO, material.ID]);
-    await registrarHistorialContenido(conn, { materialID: material.ID, estadoAnteriorID: material.estadoID, estadoNuevoID: ESTADOS_CONTENIDO.ELIMINADO, cuentaID: req.userJwt.id });
-    await crearNotificacion(conn, { cuentaID: material.cuentaID, titulo: 'Tu material fue eliminado', mensaje: `"${material.Titulo}" fue eliminado.`, tipoID: TIPOS_NOTIFICACION.ELIMINACION });
-
-    await conn.commit();
-    res.json({ message: 'Material eliminado.' });
-  } catch (err) {
-    await conn.rollback();
-    console.error('[Materiales] DELETE /materiales/:id:', err);
-    res.status(500).json({ error: err.message });
-  } finally {
-    conn.release();
-  }
-});
 
 // ─────────────────────────────────────────────────────────────
 // NOTIFICACIONES
@@ -1986,7 +1705,7 @@ app.patch('/notificaciones/:id/leida', requireAuth, async (req, res) => {
 app.get('/empresas', async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT e.ID, e.Nombre, e.Descripcion, e.imagen,
+      `SELECT e.ID, e.Nombre, e.Descripcion, e.imagen, e.enlaceExterno,
               e.estadoEmpresaID, ee.estado AS estadoNombre
        FROM Empresas e
        LEFT JOIN estadoEmpresa ee ON e.estadoEmpresaID = ee.ID
@@ -2008,7 +1727,7 @@ app.get('/empresas', async (req, res) => {
 app.get('/admin/empresas', requireAuth, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT e.ID, e.Nombre, e.Descripcion, e.imagen,
+      `SELECT e.ID, e.Nombre, e.Descripcion, e.imagen, e.enlaceExterno,
               e.estadoEmpresaID, ee.estado AS estadoNombre
        FROM Empresas e
        LEFT JOIN estadoEmpresa ee ON e.estadoEmpresaID = ee.ID
@@ -2024,10 +1743,10 @@ app.get('/admin/empresas', requireAuth, requireRole(ROLES.ADMINISTRADOR), async 
 /**
  * POST /empresas
  * Solo Admin. Crea una nueva empresa de pasantías.
- * Body: { Nombre, Descripcion?, imagen?, estadoEmpresaID? }
+ * Body: { Nombre, Descripcion?, imagen?, enlaceExterno?, estadoEmpresaID? }
  */
 app.post('/empresas', requireAuth, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
-  const { Nombre, Descripcion, imagen, estadoEmpresaID } = req.body;
+  const { Nombre, Descripcion, imagen, enlaceExterno, estadoEmpresaID } = req.body;
 
   if (!Nombre || !Nombre.trim()) {
     return res.status(400).json({ error: 'El nombre de la empresa es requerido.' });
@@ -2041,13 +1760,13 @@ app.post('/empresas', requireAuth, requireRole(ROLES.ADMINISTRADOR), async (req,
 
   try {
     const [result] = await pool.query(
-      `INSERT INTO Empresas (Nombre, Descripcion, imagen, estadoEmpresaID)
-       VALUES (?, ?, ?, ?)`,
-      [Nombre.trim(), Descripcion ?? null, imagen ?? null, estadoFinal]
+      `INSERT INTO Empresas (Nombre, Descripcion, imagen, enlaceExterno, estadoEmpresaID)
+       VALUES (?, ?, ?, ?, ?)`,
+      [Nombre.trim(), Descripcion ?? null, imagen ?? null, enlaceExterno ?? null, estadoFinal]
     );
 
     const [[nueva]] = await pool.query(
-      `SELECT e.ID, e.Nombre, e.Descripcion, e.imagen, e.estadoEmpresaID, ee.estado AS estadoNombre
+      `SELECT e.ID, e.Nombre, e.Descripcion, e.imagen, e.enlaceExterno, e.estadoEmpresaID, ee.estado AS estadoNombre
        FROM Empresas e
        LEFT JOIN estadoEmpresa ee ON e.estadoEmpresaID = ee.ID
        WHERE e.ID = ?`,
@@ -2063,11 +1782,11 @@ app.post('/empresas', requireAuth, requireRole(ROLES.ADMINISTRADOR), async (req,
 
 /**
  * PATCH /empresas/:id
- * Solo Admin. Edita los datos de una empresa (nombre, descripción, imagen).
- * Body: { Nombre?, Descripcion?, imagen? }
+ * Solo Admin. Edita los datos de una empresa (nombre, descripción, imagen, enlace externo).
+ * Body: { Nombre?, Descripcion?, imagen?, enlaceExterno? }
  */
 app.patch('/empresas/:id', requireAuth, requireRole(ROLES.ADMINISTRADOR), async (req, res) => {
-  const { Nombre, Descripcion, imagen } = req.body;
+  const { Nombre, Descripcion, imagen, enlaceExterno } = req.body;
 
   try {
     const [[empresa]] = await pool.query(
@@ -2089,6 +1808,7 @@ app.patch('/empresas/:id', requireAuth, requireRole(ROLES.ADMINISTRADOR), async 
     }
     if (Descripcion !== undefined) { campos.push('Descripcion = ?'); params.push(Descripcion); }
     if (imagen !== undefined) { campos.push('imagen = ?'); params.push(imagen); }
+    if (enlaceExterno !== undefined) { campos.push('enlaceExterno = ?'); params.push(enlaceExterno); }
 
     if (campos.length === 0) {
       return res.status(400).json({ error: 'No hay campos para actualizar.' });
@@ -2098,7 +1818,7 @@ app.patch('/empresas/:id', requireAuth, requireRole(ROLES.ADMINISTRADOR), async 
     await pool.query(`UPDATE Empresas SET ${campos.join(', ')} WHERE ID = ?`, params);
 
     const [[actualizada]] = await pool.query(
-      `SELECT e.ID, e.Nombre, e.Descripcion, e.imagen, e.estadoEmpresaID, ee.estado AS estadoNombre
+      `SELECT e.ID, e.Nombre, e.Descripcion, e.imagen, e.enlaceExterno, e.estadoEmpresaID, ee.estado AS estadoNombre
        FROM Empresas e
        LEFT JOIN estadoEmpresa ee ON e.estadoEmpresaID = ee.ID
        WHERE e.ID = ?`,

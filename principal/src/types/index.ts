@@ -21,19 +21,7 @@ export interface Materia {
   mono: boolean;
   nombre: string;
   desc: string;
-  badge: string;
-}
-
-export interface MaterialItem {
-  id: number;
-  titulo: string;
-  descripcion: string;
-  asignatura: string;
-  clasificacion: string;
-  docente: string;
-  fecha: string;
-  paginas: number;
-  archivo: string;
+  badge?: string;
 }
 
 export interface User {
@@ -119,28 +107,12 @@ export interface EventoBackendItem {
   cursoIDs?: string | number[];
 }
 
-export interface MaterialBackendItem {
-  ID: number;
-  Titulo: string;
-  descripcion?: string | null;
-  archivo: string;
-  cuentaID: number;
-  autorNombre?: string;
-  fecha_publicacion?: string | null;
-  clasificacionID: number;
-  clasificacionNombre?: string;
-  estadoID: number;
-  estadoNombre?: string;
-  fechaDeCreacion: string;
-  cursoIDs?: string | number[];
-  asignaturaIDs?: string | number[];
-}
-
 export interface Empresa {
   ID: number;
   Nombre: string;
   Descripcion?: string;
   imagen?: string | null;
+  enlaceExterno?: string | null;
   estadoEmpresaID: number;
   estadoNombre?: string;
 }

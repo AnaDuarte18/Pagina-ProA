@@ -36,15 +36,15 @@ export default function Navbar({ bloqueado }: NavbarProps) {
       if (isAlumnoSinAcceso) {
         return ["Inicio", "Académico", "Historia", "Contacto", "¿Sos docente?"];
       }
-      return ["Inicio", "Académico", "Historia", "Eventos", "Material", "Contacto", "¿Sos docente?"];
+      return ["Inicio", "Académico", "Historia", "Eventos", "Contacto", "¿Sos docente?"];
     }
 
     if (user.roleId === 2) {
-      return ["Inicio", "Académico", "Historia", "Eventos", "Material", "Contacto", "Nuevo"];
+      return ["Inicio", "Académico", "Historia", "Eventos", "Contacto", "Nuevo"];
     }
 
     if (user.roleId === 1) {
-      return ["Inicio", "Académico", "Historia", "Eventos", "Material", "Contacto", "Nuevo", "Administrar"];
+      return ["Inicio", "Académico", "Historia", "Eventos", "Contacto", "Nuevo", "Administrar"];
     }
 
     return ["Inicio", "Académico", "Historia", "Contacto"];

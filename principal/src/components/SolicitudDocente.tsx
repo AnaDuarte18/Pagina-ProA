@@ -81,7 +81,7 @@ export default function SolicitudDocente({ onVolver }: SolicitudDocenteProps) {
               <span className="w-2.5 h-2.5 rounded-full bg-[#6096BA]"></span>
               ¿Qué herramientas habilita el perfil Docente?
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="p-5 rounded-xl bg-[#E7ECEF]/60 border border-[#8B8C89]/20">
                 <div className="w-10 h-10 rounded-lg bg-[#274C77] text-white flex items-center justify-center text-lg mb-3">
                   📢
@@ -89,16 +89,6 @@ export default function SolicitudDocente({ onVolver }: SolicitudDocenteProps) {
                 <h3 className="font-bold text-sm text-[#274C77] mb-1">Publicar Novedades</h3>
                 <p className="text-xs text-slate-600 leading-relaxed">
                   Crear noticias institucionales, novedades de proyectos y comunicados académicos en el muro principal.
-                </p>
-              </div>
-
-              <div className="p-5 rounded-xl bg-[#E7ECEF]/60 border border-[#8B8C89]/20">
-                <div className="w-10 h-10 rounded-lg bg-[#6096BA] text-white flex items-center justify-center text-lg mb-3">
-                  📚
-                </div>
-                <h3 className="font-bold text-sm text-[#274C77] mb-1">Subir Material Didáctico</h3>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  Compartir guías, apuntes, cuadernillos y recursos de lectura para los estudiantes de tus materias.
                 </p>
               </div>
 

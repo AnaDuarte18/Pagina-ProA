@@ -4,7 +4,7 @@ import type { CursoItem } from "@/types";
 
 const BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 
-type TipoPublicacion = "novedad" | "evento" | "material";
+type TipoPublicacion = "novedad" | "evento";
 
 interface CrearPublicacionProps {
   onPublicado?: () => void;
@@ -25,7 +25,6 @@ export default function CrearPublicacion({ onPublicado, objetoEditar, tipoInicia
   const [cuerpo, setCuerpo] = useState(objetoEditar?.cuerpo || objetoEditar?.descripcion || "");
   const [imagenOArchivo, setImagenOArchivo] = useState(objetoEditar?.imagen || objetoEditar?.archivo || "");
   const [fechaEvento, setFechaEvento] = useState(objetoEditar?.fecha_publicacion ? objetoEditar.fecha_publicacion.substring(0, 10) : "");
-  const [clasificacionID, setClasificacionID] = useState(objetoEditar?.clasificacionID || 1);
   const [selectedCursos, setSelectedCursos] = useState<number[]>([]);
   const [asignaturaID, setAsignaturaID] = useState<string>(
     objetoEditar?.asignaturaID ? String(objetoEditar.asignaturaID) : ""
@@ -123,16 +122,6 @@ export default function CrearPublicacion({ onPublicado, objetoEditar, tipoInicia
           asignaturaID: asignaturaID ? parseInt(asignaturaID) : null,
           cursoIDs: selectedCursos,
         };
-      } else if (tipo === "material") {
-        endpoint = objetoEditar?.ID ? `${BASE}/materiales/${objetoEditar.ID}` : `${BASE}/materiales`;
-        payload = {
-          Titulo: titulo,
-          descripcion: cuerpo,
-          archivo: imagenOArchivo || "https://ejemplo.com/archivo.pdf",
-          clasificacionID: clasificacionID,
-          asignaturaIDs: asignaturaID ? [parseInt(asignaturaID)] : [],
-          cursoIDs: selectedCursos, // Vacío = visible para todos los alumnos
-        };
       }
 
       const res = await fetch(endpoint, {
@@ -190,7 +179,7 @@ export default function CrearPublicacion({ onPublicado, objetoEditar, tipoInicia
               </p>
             </div>
 
-            {/* Selector de Tipo (Novedad, Evento, Material) */}
+            {/* Selector de Tipo (Novedad, Evento) */}
             {!objetoEditar && (
               <div className="inline-flex bg-[#1a3050] p-1.5 rounded-lg border border-white/15">
                 <button
@@ -214,17 +203,6 @@ export default function CrearPublicacion({ onPublicado, objetoEditar, tipoInicia
                   }`}
                 >
                   Evento
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTipo("material")}
-                  className={`text-xs font-bold px-3.5 py-2 rounded-md transition-all ${
-                    tipo === "material"
-                      ? "bg-[#6096BA] text-white shadow-sm"
-                      : "text-[#A3CEF1] hover:text-white"
-                  }`}
-                >
-                  Material de Aula
                 </button>
               </div>
             )}
@@ -265,9 +243,7 @@ export default function CrearPublicacion({ onPublicado, objetoEditar, tipoInicia
                 placeholder={
                   tipo === "novedad"
                     ? "Ej: Hackathon Escolar 2026: Inscripciones Abiertas"
-                    : tipo === "evento"
-                    ? "Ej: Entrega de Proyecto Integrador de 4° Año"
-                    : "Ej: Cuadernillo Práctico de JavaScript & TypeScript"
+                    : "Ej: Entrega de Proyecto Integrador de 4° Año"
                 }
                 className="w-full text-sm px-4 py-3 rounded-lg border border-[#8B8C89]/30 text-[#0d1b2a] focus:outline-none focus:border-[#6096BA]"
               />
@@ -312,25 +288,6 @@ export default function CrearPublicacion({ onPublicado, objetoEditar, tipoInicia
                 </select>
               </div>
 
-              {/* Si es Material: Clasificación */}
-              {tipo === "material" && (
-                <div>
-                  <label className="block text-xs font-bold text-[#274C77] uppercase tracking-wider mb-1.5">
-                    Clasificación de material *
-                  </label>
-                  <select
-                    value={clasificacionID}
-                    onChange={(e) => setClasificacionID(parseInt(e.target.value))}
-                    className="w-full text-xs px-3.5 py-2.5 rounded-lg border border-[#8B8C89]/30 text-[#0d1b2a] bg-white focus:outline-none focus:border-[#6096BA]"
-                  >
-                    <option value={1}>Cuadernillo</option>
-                    <option value={2}>Material de clase</option>
-                    <option value={3}>Material de lectura</option>
-                    <option value={4}>Libro</option>
-                  </select>
-                </div>
-              )}
-
               {/* Si es Evento: Fecha */}
               {tipo === "evento" && (
                 <div>
@@ -351,7 +308,7 @@ export default function CrearPublicacion({ onPublicado, objetoEditar, tipoInicia
             {/* Cuerpo / Descripción */}
             <div>
               <label className="block text-xs font-bold text-[#274C77] uppercase tracking-wider mb-1.5">
-                {tipo === "material" ? "Descripción del recurso *" : "Contenido / Cuerpo *"}
+                Contenido / Cuerpo *
               </label>
               <textarea
                 required
@@ -366,11 +323,10 @@ export default function CrearPublicacion({ onPublicado, objetoEditar, tipoInicia
             {/* Imagen o URL de archivo */}
             <div>
               <label className="block text-xs font-bold text-[#274C77] uppercase tracking-wider mb-1.5">
-                {tipo === "novedad" ? "URL de Imagen (opcional)" : "Enlace al archivo o recurso (PDF/Drive/Repo) *"}
+                {tipo === "novedad" ? "URL de Imagen (opcional)" : "Enlace al archivo o recurso (PDF/Drive/Repo) (opcional)"}
               </label>
               <input
                 type="text"
-                required={tipo === "material"}
                 value={imagenOArchivo}
                 onChange={(e) => setImagenOArchivo(e.target.value)}
                 placeholder="https://..."
@@ -378,18 +334,16 @@ export default function CrearPublicacion({ onPublicado, objetoEditar, tipoInicia
               />
             </div>
 
-            {/* Selección de Cursos (para Eventos y Materiales) */}
-            {(tipo === "evento" || tipo === "material") && (
+            {/* Selección de Cursos (para Eventos) */}
+            {tipo === "evento" && (
               <div className="p-4 rounded-lg bg-[#E7ECEF]/50 border border-[#8B8C89]/20">
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <h3 className="text-xs font-bold text-[#274C77] uppercase tracking-wider">
-                      Cursos Habilitados {tipo === "evento" ? "(Obligatorio)" : "(Opcional)"}
+                      Cursos Habilitados (Obligatorio)
                     </h3>
                     <p className="text-[11px] text-[#8B8C89]">
-                      {tipo === "evento"
-                        ? "Solo los alumnos pertenecientes a estos cursos podrán ver el evento en su calendario."
-                        : "Dejá sin seleccionar ningún curso si querés que el material sea accesible para todos los alumnos."}
+                      Solo los alumnos pertenecientes a estos cursos podrán ver el evento en su calendario.
                     </p>
                   </div>
                   <button

@@ -1,6 +1,15 @@
 import { useEffect, useState } from "react";
 import { fetchEmpresas } from "@/services/empresas.service";
-import type { Empresa } from "@/mocks/empresas.mock";
+import type { Empresa } from "@/types";
+
+function formatExternalUrl(url?: string | null): string {
+  if (!url) return "#";
+  const trimmed = url.trim();
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
+}
 
 export default function Empresas() {
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
@@ -80,24 +89,39 @@ export default function Empresas() {
                     alt={empresa.Nombre}
                     className="w-full h-full object-cover"
                     loading="lazy"
-                    onError={(e) => {
-                      // Fallback en caso de URL rota
-                      (e.target as HTMLImageElement).src =
-                        "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&h=400&fit=crop&auto=format";
-                    }}
                   />
-                  <div className="absolute top-3 right-3">
-                    <span className="font-mono-code text-[11px] font-bold bg-[#274C77]/90 text-white px-2.5 py-1 rounded-full shadow-xs">
-                      Pasantía
-                    </span>
-                  </div>
                 </div>
 
                 {/* Información: Nombre y descripción */}
                 <div className="p-6 flex-1 flex flex-col justify-between">
                   <div>
                     <h3 className="font-display text-xl font-bold text-[#274C77] mb-2">
-                      {empresa.Nombre}
+                      {empresa.enlaceExterno ? (
+                        <a
+                          href={formatExternalUrl(empresa.enlaceExterno)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:text-[#6096BA] hover:underline inline-flex items-center gap-1.5 group/link transition-colors"
+                          title={`Visitar el sitio web de ${empresa.Nombre}`}
+                        >
+                          <span>{empresa.Nombre}</span>
+                          <svg
+                            className="w-4 h-4 opacity-60 group-hover/link:opacity-100 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-all shrink-0"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                            />
+                          </svg>
+                        </a>
+                      ) : (
+                        <span>{empresa.Nombre}</span>
+                      )}
                     </h3>
                     {empresa.Descripcion && (
                       <p className="text-slate-600 text-sm leading-relaxed line-clamp-3">

@@ -2,17 +2,16 @@ import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import ListaNovedades from "./admin/ListaNovedades";
 import ListaEventos from "./admin/ListaEventos";
-import ListaMaterial from "./admin/ListaMaterial";
 import ListaCuentas from "./admin/ListaCuentas";
 import ListaEmpresas from "./admin/ListaEmpresas";
 import CrearPublicacion from "./CrearPublicacion";
 
-type TabAdmin = "novedades" | "eventos" | "material" | "cuentas" | "empresas";
+type TabAdmin = "novedades" | "eventos" | "cuentas" | "empresas";
 
 export default function AdminPanel() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabAdmin>("novedades");
-  const [editandoObjeto, setEditandoObjeto] = useState<{ tipo: "novedad" | "evento" | "material"; objeto: any } | null>(null);
+  const [editandoObjeto, setEditandoObjeto] = useState<{ tipo: "novedad" | "evento"; objeto: any } | null>(null);
 
   // Seguridad en frontend (y backend en las llamadas API)
   if (!user || user.roleId !== 1) {
@@ -78,19 +77,6 @@ export default function AdminPanel() {
             </button>
             <button
               onClick={() => {
-                setActiveTab("material");
-                setEditandoObjeto(null);
-              }}
-              className={`text-xs font-bold px-3.5 py-2 rounded-md transition-all whitespace-nowrap ${
-                activeTab === "material" && !editandoObjeto
-                  ? "bg-[#6096BA] text-white shadow-sm"
-                  : "text-[#A3CEF1] hover:text-white"
-              }`}
-            >
-              Material
-            </button>
-            <button
-              onClick={() => {
                 setActiveTab("cuentas");
                 setEditandoObjeto(null);
               }}
@@ -147,12 +133,6 @@ export default function AdminPanel() {
             {activeTab === "eventos" && (
               <ListaEventos
                 onEditar={(evento) => setEditandoObjeto({ tipo: "evento", objeto: evento })}
-              />
-            )}
-
-            {activeTab === "material" && (
-              <ListaMaterial
-                onEditar={(mat) => setEditandoObjeto({ tipo: "material", objeto: mat })}
               />
             )}
 

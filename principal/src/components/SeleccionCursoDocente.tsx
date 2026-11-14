@@ -186,8 +186,7 @@ export default function SeleccionCursoDocente({ onCompletado }: SeleccionCursoDo
                   Soy Alumno
                 </h3>
                 <p className="text-slate-600 text-sm leading-relaxed">
-                  Asociá tu cuenta al curso que estás cursando para acceder a los materiales pedagógicos,
-                  cronograma y eventos exclusivos de tu división.
+                  Asociá tu cuenta al curso que estás cursando para acceder al cronograma y eventos exclusivos de tu división.
                 </p>
               </div>
 
@@ -314,7 +313,7 @@ export default function SeleccionCursoDocente({ onCompletado }: SeleccionCursoDo
               <p className="text-sm text-slate-600 leading-relaxed">
                 Al enviar esta solicitud, tu usuario quedará registrado con petición de docente.
                 Una vez que un Administrador apruebe tu cuenta, tendrás acceso a las herramientas
-                de publicación de novedades, creación de eventos y carga de materiales.
+                de publicación de novedades y creación de eventos.
               </p>
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
                 ⚠️ Recordá que al solicitar rol docente no podrás vincularte como alumno a un curso escolar.

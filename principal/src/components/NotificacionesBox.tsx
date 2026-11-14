@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import type { NotificacionItem } from "@/types";
 
@@ -167,8 +167,8 @@ function getMockNotificaciones(nombre: string): NotificacionItem[] {
     },
     {
       ID: 102,
-      Titulo: "Material Devuelto",
-      mensaje: `El cuadernillo de Programación I requiere correcciones. Revisá el comentario del admin.`,
+      Titulo: "Evento Devuelto",
+      mensaje: `El evento programado requiere correcciones. Revisá el comentario del admin.`,
       fechaLeida: null,
       tipoID: 2,
       tipoNombre: "Devolución",
